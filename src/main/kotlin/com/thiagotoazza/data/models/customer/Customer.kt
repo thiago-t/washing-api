@@ -6,11 +6,13 @@ import org.bson.types.ObjectId
 data class Customer(
     val fullName: String,
     val phoneNumber: String?,
+    val washerId: ObjectId?,
     @BsonId val id: ObjectId = ObjectId()
 )
 
 fun Customer.toCustomerResponse() = CustomerResponse(
     id = id.toString(),
     fullName = fullName,
-    phoneNumber = phoneNumber
+    phoneNumber = phoneNumber,
+    washerId = washerId.toString()
 )
