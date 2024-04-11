@@ -2,6 +2,7 @@ package com.thiagotoazza.routes
 
 import com.thiagotoazza.data.WashingDatabase
 import com.thiagotoazza.data.models.customer.Customer
+import com.thiagotoazza.data.models.customer.fromJson
 import com.thiagotoazza.data.models.customer.toCustomerResponse
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
 import io.ktor.http.*
@@ -44,11 +45,9 @@ fun Route.customersRoute() {
         }
 
         post {
-            val customer = try {
-                call.receive<Customer>()
-            } catch (e: ContentTransformationException) {
-                call.respond(HttpStatusCode.BadRequest, e.message.toString())
-                return@post
+            val rawJson = call.receiveText()
+            val customer = fromJson(rawJson).getOrElse {
+                return@post call.respond(HttpStatusCode.BadRequest, it.message.toString())
             }
 
             if (customerDataSource.insertCustomer(customer)) {
