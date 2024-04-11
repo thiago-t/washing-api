@@ -16,6 +16,11 @@ class MongoVehicleDataSource(
         return vehiclesCollection.find().toList()
     }
 
+    override suspend fun getVehiclesFromWasher(washerId: String): List<Vehicle> {
+        val query = Document("washerId", ObjectId(washerId))
+        return vehiclesCollection.find(query).toList()
+    }
+
     override suspend fun getVehicleById(id: String?): Vehicle? {
         val query = Document("_id", ObjectId(id))
         return vehiclesCollection.find(query).firstOrNull()

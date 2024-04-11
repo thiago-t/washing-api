@@ -9,16 +9,30 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.bson.types.ObjectId
 
 fun Route.vehiclesRoute() {
     route("/vehicles") {
         val vehiclesDataSource = MongoVehicleDataSource(WashingDatabase.database)
 
         get {
-            val vehicles = vehiclesDataSource.getVehicles().map { vehicle ->
-                vehicle.toVehicleResponse()
+            val washerIdQueryParam = call.request.queryParameters["washerId"]
+            if (washerIdQueryParam?.isNotEmpty() == true) {
+                val washerId = try {
+                    ObjectId(washerIdQueryParam).toString()
+                } catch (_: IllegalArgumentException) {
+                    return@get call.respond(HttpStatusCode.BadRequest, "Invalid washer id")
+                }
+                val vehicles = vehiclesDataSource.getVehiclesFromWasher(washerId).map { vehicle ->
+                    vehicle.toVehicleResponse()
+                }
+                call.respond(HttpStatusCode.OK, vehicles)
+            } else {
+                val vehicles = vehiclesDataSource.getVehicles().map { vehicle ->
+                    vehicle.toVehicleResponse()
+                }
+                return@get call.respond(HttpStatusCode.OK, vehicles)
             }
-            call.respond(HttpStatusCode.OK, vehicles)
         }
 
         get("/{id}") {
