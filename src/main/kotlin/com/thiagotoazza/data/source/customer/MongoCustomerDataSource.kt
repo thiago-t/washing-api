@@ -16,6 +16,11 @@ class MongoCustomerDataSource(
         return customersCollection.find().toList()
     }
 
+    override suspend fun getCustomersFromWasher(washerId: String): List<Customer> {
+        val query = Document("washerId", ObjectId(washerId))
+        return customersCollection.find(query).toList()
+    }
+
     override suspend fun getCustomerById(id: String?): Customer? {
         val query = Document("_id", ObjectId(id))
         return customersCollection.find<Customer>(query).firstOrNull()
