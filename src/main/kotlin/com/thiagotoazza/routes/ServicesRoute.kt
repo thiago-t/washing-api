@@ -1,14 +1,23 @@
 package com.thiagotoazza.routes
 
 import com.thiagotoazza.data.WashingDatabase
+import com.thiagotoazza.data.models.customer.toCustomerResponse
+import com.thiagotoazza.data.models.services.Service
+import com.thiagotoazza.data.models.services.ServiceResponse
 import com.thiagotoazza.data.models.services.fromJson
 import com.thiagotoazza.data.models.services.toServiceResponse
+import com.thiagotoazza.data.models.vehicles.toVehicleResponse
 import com.thiagotoazza.data.source.MongoServiceDataSource
+import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
+import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import org.bson.BsonDateTime
 import org.bson.types.ObjectId
 
@@ -32,13 +41,11 @@ fun Route.servicesRoute() {
                     return@get call.respond(HttpStatusCode.BadRequest, "Invalid date")
                 }
                 val services = servicesDataSource.getServicesFromWasherIdAndDate(washerId, date).map { service ->
-                    service.toServiceResponse()
+                    buildResponse(service)
                 }
                 call.respond(HttpStatusCode.OK, services)
             } else {
-                val services = servicesDataSource.getServices().map { service ->
-                    service.toServiceResponse()
-                }
+                val services = servicesDataSource.getServices().map { service -> buildResponse(service) }
                 call.respond(HttpStatusCode.OK, services)
             }
         }
@@ -47,7 +54,7 @@ fun Route.servicesRoute() {
             val serviceId = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest)
             val service = servicesDataSource.getServicesById(serviceId)
             service?.let {
-                call.respond(HttpStatusCode.OK, it.toServiceResponse())
+                call.respond(HttpStatusCode.OK, buildResponse(service = it))
             }
         }
 
@@ -73,4 +80,21 @@ fun Route.servicesRoute() {
             }
         }
     }
+}
+
+private suspend fun buildResponse(service: Service): ServiceResponse {
+    val customersDataSource = MongoCustomerDataSource(WashingDatabase.database)
+    val vehiclesDataSource = MongoVehicleDataSource(WashingDatabase.database)
+    return coroutineScope {
+        async {
+            val customer = customersDataSource.getCustomerById(service.customerId.toString())
+                ?: throw NotFoundException("Customer not found")
+            val vehicle = vehiclesDataSource.getVehicleById(service.vehicleId.toString())
+                ?: throw NotFoundException("Vehicle not found")
+            service.toServiceResponse(
+                customer.toCustomerResponse(),
+                vehicle.toVehicleResponse()
+            )
+        }
+    }.await()
 }

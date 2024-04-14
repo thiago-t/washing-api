@@ -2,6 +2,8 @@ package com.thiagotoazza.data.models.services
 
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import com.thiagotoazza.data.models.customer.CustomerResponse
+import com.thiagotoazza.data.models.vehicles.VehicleResponse
 import org.bson.BsonDateTime
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
@@ -16,10 +18,10 @@ data class Service(
     @BsonId val id: ObjectId = ObjectId(),
 )
 
-fun Service.toServiceResponse() = ServiceResponse(
+fun Service.toServiceResponse(customer: CustomerResponse, vehicle: VehicleResponse) = ServiceResponse(
     id = id.toString(),
-    customerId = customerId.toString(),
-    vehicleId = vehicleId.toString(),
+    customer = customer,
+    vehicle = vehicle,
     washerId = washerId.toString(),
     date = date.value.toString(),
     type = type,
