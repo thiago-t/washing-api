@@ -1,5 +1,7 @@
 package com.thiagotoazza.plugins
 
+import com.thiagotoazza.routes.customersRoute
+import com.thiagotoazza.routes.vehiclesRoute
 import com.thiagotoazza.routes.servicesRoute
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -10,6 +12,8 @@ fun Application.configureRouting() {
         get("/") {
             call.respondText("Enjoy Washing App!")
         }
+        customersRoute()
+        vehiclesRoute()
         servicesRoute()
     }
 }
