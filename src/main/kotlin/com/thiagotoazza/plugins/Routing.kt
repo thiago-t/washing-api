@@ -1,6 +1,7 @@
 package com.thiagotoazza.plugins
 
 import com.thiagotoazza.routes.customersRoute
+import com.thiagotoazza.routes.reportsRoute
 import com.thiagotoazza.routes.vehiclesRoute
 import com.thiagotoazza.routes.servicesRoute
 import io.ktor.server.application.*
@@ -15,5 +16,6 @@ fun Application.configureRouting() {
         customersRoute()
         vehiclesRoute()
         servicesRoute()
+        reportsRoute()
     }
 }
