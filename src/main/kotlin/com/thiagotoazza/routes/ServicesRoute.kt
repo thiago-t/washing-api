@@ -2,10 +2,7 @@ package com.thiagotoazza.routes
 
 import com.thiagotoazza.data.WashingDatabase
 import com.thiagotoazza.data.models.customer.toCustomerResponse
-import com.thiagotoazza.data.models.services.Service
-import com.thiagotoazza.data.models.services.ServiceResponse
-import com.thiagotoazza.data.models.services.fromJson
-import com.thiagotoazza.data.models.services.toServiceResponse
+import com.thiagotoazza.data.models.services.*
 import com.thiagotoazza.data.models.vehicles.toVehicleResponse
 import com.thiagotoazza.data.source.MongoServiceDataSource
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
@@ -59,10 +56,11 @@ fun Route.servicesRoute() {
         }
 
         post {
-            val rawJson = call.receive<String>()
-            val service = fromJson(rawJson).getOrElse {
-                return@post call.respond(HttpStatusCode.BadRequest, it.message.toString())
-            }
+//            val rawJson = call.receive<String>()
+//            val service = fromJson(rawJson).getOrElse {
+//                return@post call.respond(HttpStatusCode.BadRequest, it.message.toString())
+//            }
+            val service = call.receive<ServiceRequest>()
 
             if (servicesDataSource.insertService(service)) {
                 call.respond(HttpStatusCode.OK, service)
