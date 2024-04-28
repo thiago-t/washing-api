@@ -18,7 +18,7 @@ fun Application.configureRouting() {
             customersRoute()
             vehiclesRoute()
             servicesRoute()
+            reportsRoute()
         }
-        reportsRoute()
     }
 }
