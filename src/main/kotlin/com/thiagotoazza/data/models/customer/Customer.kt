@@ -1,7 +1,5 @@
 package com.thiagotoazza.data.models.customer
 
-import com.google.gson.Gson
-import com.google.gson.JsonObject
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
@@ -18,13 +16,3 @@ fun Customer.toCustomerResponse() = CustomerResponse(
     phoneNumber = phoneNumber,
     washerId = washerId.toString()
 )
-
-fun fromJson(json: String): Result<Customer> {
-    return Gson().fromJson(json, JsonObject::class.java).runCatching {
-        Customer(
-            fullName = get(Customer::fullName.name).asString,
-            phoneNumber = get(Customer::phoneNumber.name).asString,
-            washerId = ObjectId(get(Customer::washerId.name).asString)
-        )
-    }
-}

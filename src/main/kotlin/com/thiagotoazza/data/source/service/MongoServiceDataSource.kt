@@ -1,4 +1,4 @@
-package com.thiagotoazza.data.source
+package com.thiagotoazza.data.source.service
 
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import com.thiagotoazza.data.models.services.Service
@@ -15,6 +15,11 @@ class MongoServiceDataSource(
 
     override suspend fun getServices(): List<Service> {
         return servicesCollection.find().toList()
+    }
+
+    override suspend fun getServices(washerId: String): List<Service> {
+        val query = Document("washerId", ObjectId(washerId))
+        return servicesCollection.find(query).toList()
     }
 
     override suspend fun getServicesFromWasherIdAndDate(washerId: String, date: Long): List<Service> {

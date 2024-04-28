@@ -7,10 +7,12 @@ import com.thiagotoazza.data.models.report.ReportRequest
 import com.thiagotoazza.data.models.report.toReportResponse
 import com.thiagotoazza.data.models.services.toServiceResponse
 import com.thiagotoazza.data.models.vehicles.toVehicleResponse
-import com.thiagotoazza.data.source.MongoServiceDataSource
+import com.thiagotoazza.data.source.service.MongoServiceDataSource
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
 import com.thiagotoazza.data.source.report.MongoReportDataSource
 import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
+import com.thiagotoazza.utils.Constants
+import com.thiagotoazza.utils.ResponseError
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -25,20 +27,27 @@ fun Route.reportsRoute() {
     val customersDataSource = MongoCustomerDataSource(WashingDatabase.database)
     val vehiclesDataSource = MongoVehicleDataSource(WashingDatabase.database)
 
-    route("/{washerId}/reports") {
+    route("/reports") {
         get {
-            val washerId = call.parameters["washerId"]
-            val month = call.request.queryParameters["month"]?.toIntOrNull()
-            val year = call.request.queryParameters["year"]?.toIntOrNull()
+            val washerId = call.parameters[Constants.KEY_WASHER_ID]
+            val month = call.request.queryParameters[Constants.KEY_MONTH]?.toIntOrNull()
+            val year = call.request.queryParameters[Constants.KEY_YEAR]?.toIntOrNull()
 
-            try {
-                ObjectId(washerId)
-            } catch (_: IllegalArgumentException) {
-                return@get call.respond(HttpStatusCode.BadRequest, "Invalid WasherId")
+            if (ObjectId.isValid(washerId).not()) {
+                return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
+                )
             }
 
-            if (month == null) return@get call.respond(HttpStatusCode.BadRequest, "Missing month query")
-            if (year == null) return@get call.respond(HttpStatusCode.BadRequest, "Missing year query")
+            if (month == null) return@get call.respond(
+                HttpStatusCode.BadRequest,
+                ResponseError(HttpStatusCode.BadRequest.value, "Invalid month")
+            )
+            if (year == null) return@get call.respond(
+                HttpStatusCode.BadRequest,
+                ResponseError(HttpStatusCode.BadRequest.value, "Invalid year")
+            )
 
             val reports = reportsDataSource.getReports().map { report ->
                 val services = report.services.map {

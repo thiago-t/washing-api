@@ -1,7 +1,5 @@
 package com.thiagotoazza.data.models.services
 
-import com.google.gson.Gson
-import com.google.gson.JsonObject
 import com.thiagotoazza.data.models.customer.CustomerResponse
 import com.thiagotoazza.data.models.vehicles.VehicleResponse
 import org.bson.BsonDateTime
@@ -27,16 +25,3 @@ fun Service.toServiceResponse(customer: CustomerResponse, vehicle: VehicleRespon
     type = type,
     cost = cost
 )
-
-fun fromJson(json: String): Result<Service> {
-    return Gson().fromJson(json, JsonObject::class.java).runCatching {
-        Service(
-            customerId = ObjectId(get(Service::customerId.name).asString),
-            vehicleId = ObjectId(get(Service::vehicleId.name).asString),
-            washerId = ObjectId(get(Service::washerId.name).asString),
-            date = BsonDateTime(get(Service::date.name).asLong),
-            type = get(Service::type.name).asString,
-            cost = get(Service::cost.name).asDouble
-        )
-    }
-}
