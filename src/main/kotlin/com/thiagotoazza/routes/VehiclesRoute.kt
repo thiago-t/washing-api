@@ -19,7 +19,7 @@ fun Route.vehiclesRoute() {
         val vehiclesDataSource = MongoVehicleDataSource(WashingDatabase.database)
 
         get {
-            val washerId = call.request.queryParameters[Constants.KEY_WASHER_ID]
+            val washerId = call.parameters[Constants.KEY_WASHER_ID]
             if (washerId?.isNotEmpty() == true) {
                 if (ObjectId.isValid(washerId).not()) {
                     return@get call.respond(
