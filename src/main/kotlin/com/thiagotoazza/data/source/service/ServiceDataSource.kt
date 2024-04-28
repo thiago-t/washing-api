@@ -1,4 +1,4 @@
-package com.thiagotoazza.data.source
+package com.thiagotoazza.data.source.service
 
 import com.thiagotoazza.data.models.services.Service
 

@@ -7,7 +7,7 @@ import com.thiagotoazza.data.models.report.ReportRequest
 import com.thiagotoazza.data.models.report.toReportResponse
 import com.thiagotoazza.data.models.services.toServiceResponse
 import com.thiagotoazza.data.models.vehicles.toVehicleResponse
-import com.thiagotoazza.data.source.MongoServiceDataSource
+import com.thiagotoazza.data.source.service.MongoServiceDataSource
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
 import com.thiagotoazza.data.source.report.MongoReportDataSource
 import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
