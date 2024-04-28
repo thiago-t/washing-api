@@ -16,8 +16,8 @@ fun Application.configureRouting() {
 
         route("/{washerId}") {
             customersRoute()
+            vehiclesRoute()
         }
-        vehiclesRoute()
         servicesRoute()
         reportsRoute()
     }

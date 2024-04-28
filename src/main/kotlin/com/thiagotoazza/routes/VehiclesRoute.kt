@@ -1,9 +1,12 @@
 package com.thiagotoazza.routes
 
 import com.thiagotoazza.data.WashingDatabase
-import com.thiagotoazza.data.models.vehicles.fromJson
+import com.thiagotoazza.data.models.vehicles.Vehicle
+import com.thiagotoazza.data.models.vehicles.VehicleRequest
 import com.thiagotoazza.data.models.vehicles.toVehicleResponse
 import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
+import com.thiagotoazza.utils.Constants
+import com.thiagotoazza.utils.ResponseError
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -16,12 +19,13 @@ fun Route.vehiclesRoute() {
         val vehiclesDataSource = MongoVehicleDataSource(WashingDatabase.database)
 
         get {
-            val washerIdQueryParam = call.request.queryParameters["washerId"]
-            if (washerIdQueryParam?.isNotEmpty() == true) {
-                val washerId = try {
-                    ObjectId(washerIdQueryParam).toString()
-                } catch (_: IllegalArgumentException) {
-                    return@get call.respond(HttpStatusCode.BadRequest, "Invalid washer id")
+            val washerId = call.request.queryParameters[Constants.KEY_WASHER_ID]
+            if (washerId?.isNotEmpty() == true) {
+                if (ObjectId.isValid(washerId).not()) {
+                    return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
+                    )
                 }
                 val vehicles = vehiclesDataSource.getVehiclesFromWasher(washerId).map { vehicle ->
                     vehicle.toVehicleResponse()
@@ -36,7 +40,7 @@ fun Route.vehiclesRoute() {
         }
 
         get("/{id}") {
-            val vehicleId = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val vehicleId = call.parameters[Constants.KEY_ID] ?: return@get call.respond(HttpStatusCode.BadRequest)
             val vehicle = vehiclesDataSource.getVehicleById(vehicleId)
             vehicle?.let {
                 call.respond(HttpStatusCode.OK, it.toVehicleResponse())
@@ -44,20 +48,23 @@ fun Route.vehiclesRoute() {
         }
 
         post {
-            val rawJson = call.receiveText()
-            val vehicle = fromJson(rawJson).getOrElse {
-                return@post call.respond(HttpStatusCode.BadRequest, it.message.toString())
-            }
+            val washerId = call.parameters[Constants.KEY_WASHER_ID]
+            val request = call.receive<VehicleRequest>()
+            val vehicle = Vehicle(
+                model = request.model,
+                plate = request.plate,
+                washerId = ObjectId(washerId),
+            )
 
             if (vehiclesDataSource.insertVehicle(vehicle)) {
-                call.respond(HttpStatusCode.Created, vehicle)
+                call.respond(HttpStatusCode.Created, vehicle.toVehicleResponse())
             } else {
                 call.respond(HttpStatusCode.Conflict)
             }
         }
 
         delete("/{id}") {
-            val vehicleId = call.parameters["id"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+            val vehicleId = call.parameters[Constants.KEY_ID] ?: return@delete call.respond(HttpStatusCode.BadRequest)
             if (vehiclesDataSource.deleteVehicle(vehicleId)) {
                 call.respond(HttpStatusCode.OK)
             } else {
