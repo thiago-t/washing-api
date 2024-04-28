@@ -17,6 +17,11 @@ class MongoServiceDataSource(
         return servicesCollection.find().toList()
     }
 
+    override suspend fun getServices(washerId: String): List<Service> {
+        val query = Document("washerId", ObjectId(washerId))
+        return servicesCollection.find(query).toList()
+    }
+
     override suspend fun getServicesFromWasherIdAndDate(washerId: String, date: Long): List<Service> {
         val query = Document("washerId", ObjectId(washerId)).append("date", BsonDateTime(date))
         return servicesCollection.find(query).toList()
