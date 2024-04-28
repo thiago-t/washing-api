@@ -2,9 +2,11 @@ package com.thiagotoazza.routes
 
 import com.thiagotoazza.data.WashingDatabase
 import com.thiagotoazza.data.models.customer.Customer
-import com.thiagotoazza.data.models.customer.fromJson
+import com.thiagotoazza.data.models.customer.CustomerRequest
 import com.thiagotoazza.data.models.customer.toCustomerResponse
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
+import com.thiagotoazza.utils.Constants
+import com.thiagotoazza.utils.ResponseError
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -17,12 +19,14 @@ fun Route.customersRoute() {
         val customerDataSource = MongoCustomerDataSource(WashingDatabase.database)
 
         get {
-            val washerIdQueryParam = call.request.queryParameters["washerId"]
-            if (washerIdQueryParam?.isNotEmpty() == true) {
-                val washerId = try {
-                    ObjectId(washerIdQueryParam).toString()
-                } catch (_: IllegalArgumentException) {
-                    return@get call.respond(HttpStatusCode.BadRequest, "Invalid washer id")
+            val washerId = call.parameters[Constants.KEY_WASHER_ID]
+
+            if (washerId?.isNotEmpty() == true) {
+                if (ObjectId.isValid(washerId).not()) {
+                    return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
+                    )
                 }
                 val customers = customerDataSource.getCustomersFromWasher(washerId).map { customer ->
                     customer.toCustomerResponse()
@@ -37,28 +41,38 @@ fun Route.customersRoute() {
         }
 
         get("/{id}") {
-            val customerId = call.parameters["id"]
-            val customer = customerDataSource.getCustomerById(customerId)
-            customer?.let {
+            val customerId = call.parameters[Constants.KEY_ID]
+
+            if (ObjectId.isValid(customerId).not()) {
+                return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    ResponseError(HttpStatusCode.BadRequest.value, "Invalid customer ID")
+                )
+            }
+
+            customerDataSource.getCustomerById(customerId)?.let { customer ->
                 call.respond(HttpStatusCode.OK, customer.toCustomerResponse())
             }
         }
 
         post {
-            val rawJson = call.receiveText()
-            val customer = fromJson(rawJson).getOrElse {
-                return@post call.respond(HttpStatusCode.BadRequest, it.message.toString())
-            }
+            val washerIdPathParam = call.parameters[Constants.KEY_WASHER_ID]
+            val request = call.receive<CustomerRequest>()
+            val customer = Customer(
+                fullName = request.fullName,
+                phoneNumber = request.phoneNumber,
+                washerId = ObjectId(washerIdPathParam)
+            )
 
             if (customerDataSource.insertCustomer(customer)) {
-                call.respond(HttpStatusCode.Created, customer)
+                call.respond(HttpStatusCode.Created, customer.toCustomerResponse())
             } else {
                 call.respond(HttpStatusCode.Conflict)
             }
         }
 
         delete("/{id}") {
-            val customerId = call.parameters["id"]
+            val customerId = call.parameters[Constants.KEY_ID]
             if (customerDataSource.deleteCustomer(customerId)) {
                 call.respond(HttpStatusCode.OK)
             } else {

@@ -13,7 +13,10 @@ fun Application.configureRouting() {
         get("/") {
             call.respondText("Enjoy Washing App!")
         }
-        customersRoute()
+
+        route("/{washerId}") {
+            customersRoute()
+        }
         vehiclesRoute()
         servicesRoute()
         reportsRoute()
