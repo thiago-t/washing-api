@@ -42,7 +42,7 @@ fun Route.reportsRoute() {
             )
 
             val shortDate = date.toShortDate().split("-")
-            val report = reportsDataSource.getReportBy(shortDate[0], shortDate[1])?.let { report ->
+            val report = reportsDataSource.getReportsBy(shortDate[0], shortDate[1])?.map { report ->
                 val services = report.services.map { serviceId ->
                     servicesDataSource.getServicesById(serviceId.toString())?.let { service ->
                         val customer = customersDataSource
