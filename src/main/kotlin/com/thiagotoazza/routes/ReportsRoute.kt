@@ -29,7 +29,7 @@ fun Route.reportsRoute() {
             val washerId = call.parameters[Constants.KEY_WASHER_ID]
             val date = call.request.queryParameters[Constants.KEY_DATE]?.toLongOrNull()
 
-            if (ObjectId.isValid(washerId).not()) {
+            if (washerId == null || ObjectId.isValid(washerId).not()) {
                 return@get call.respond(
                     HttpStatusCode.BadRequest,
                     ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
@@ -42,7 +42,7 @@ fun Route.reportsRoute() {
             )
 
             val shortDate = date.toShortDate().split("-")
-            val report = reportsDataSource.getReportsBy(shortDate[0], shortDate[1])?.map { report ->
+            val report = reportsDataSource.getReportsBy(washerId, shortDate[0], shortDate[1])?.map { report ->
                 val services = report.services.map { serviceId ->
                     servicesDataSource.getServicesById(serviceId.toString())?.let { service ->
                         val customer = customersDataSource

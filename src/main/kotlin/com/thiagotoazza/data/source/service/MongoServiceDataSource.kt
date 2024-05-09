@@ -98,7 +98,7 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
 
     private suspend fun upsertReport(service: Service): Boolean {
         val shortDate = service.date.value.toShortDate()
-        val query = Document(Constants.KEY_DATE, shortDate)
+        val query = Document(Constants.KEY_DATE, shortDate).append(Constants.KEY_WASHER_ID, service.washerId)
         reportsCollection.findOneAndUpdate(
             query,
             Document(ACTION_PUSH, mapOf(KEY_SERVICES to service.id)),

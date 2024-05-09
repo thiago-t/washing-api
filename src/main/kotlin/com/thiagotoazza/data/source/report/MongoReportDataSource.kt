@@ -5,6 +5,7 @@ import com.thiagotoazza.data.models.report.Report
 import com.thiagotoazza.utils.Constants
 import kotlinx.coroutines.flow.toList
 import org.bson.Document
+import org.bson.types.ObjectId
 
 class MongoReportDataSource(database: MongoDatabase) : ReportDataSource {
 
@@ -18,8 +19,9 @@ class MongoReportDataSource(database: MongoDatabase) : ReportDataSource {
         return reportsCollection.find().toList()
     }
 
-    override suspend fun getReportsBy(year: String, month: String): List<Report>? {
-        val query = Document(Constants.KEY_DATE, Document(ACTION_REGEX, "^$year-$month"))
+    override suspend fun getReportsBy(washerId: String, year: String, month: String): List<Report>? {
+        val query = Document(Constants.KEY_WASHER_ID, ObjectId(washerId))
+            .append(Constants.KEY_DATE, Document(ACTION_REGEX, "^$year-$month"))
         return reportsCollection.find(query).toList()
     }
 
