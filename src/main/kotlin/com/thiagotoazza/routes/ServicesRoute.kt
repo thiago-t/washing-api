@@ -69,17 +69,8 @@ fun Route.servicesRoute() {
             val washerId = call.parameters[Constants.KEY_WASHER_ID]
             val request = call.receive<ServiceRequest>()
 
-            val service = Service(
-                customerId = ObjectId(request.customerId),
-                vehicleId = ObjectId(request.vehicleId),
-                washerId = ObjectId(washerId),
-                date = BsonDateTime(request.date),
-                type = request.type,
-                cost = request.cost
-            )
-
-            if (servicesDataSource.insertService(service)) {
-                call.respond(HttpStatusCode.OK, service)
+            if (servicesDataSource.insertService(washerId.orEmpty(), request)) {
+                call.respond(HttpStatusCode.OK, request)
             } else {
                 call.respond(HttpStatusCode.Conflict)
             }
