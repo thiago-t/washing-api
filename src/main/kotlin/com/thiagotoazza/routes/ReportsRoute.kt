@@ -11,7 +11,6 @@ import com.thiagotoazza.data.source.service.MongoServiceDataSource
 import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
 import com.thiagotoazza.utils.Constants
 import com.thiagotoazza.utils.ResponseError
-import com.thiagotoazza.utils.toShortDate
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -42,7 +41,7 @@ fun Route.reportsRoute() {
             )
 
             val shortDate = date.split("-")
-            val report = reportsDataSource.getReportsBy(washerId, shortDate[0], shortDate[1])?.map { report ->
+            val reports = reportsDataSource.getReportsBy(washerId, shortDate[0], shortDate[1])?.map { report ->
                 val services = report.services.map { serviceId ->
                     servicesDataSource.getServicesById(serviceId.toString())?.let { service ->
                         val customer = customersDataSource
@@ -71,8 +70,9 @@ fun Route.reportsRoute() {
                 }
                 report.toReportResponse(services)
             }
-            report?.let {
-                call.respond(HttpStatusCode.OK, report)
+            reports?.let {
+                val sortedReports = it.sortedWith(compareByDescending { it.date })
+                call.respond(HttpStatusCode.OK, sortedReports)
             } ?: run {
                 call.respond(
                     HttpStatusCode.Conflict,
