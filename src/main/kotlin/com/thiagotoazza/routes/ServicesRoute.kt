@@ -7,8 +7,8 @@ import com.thiagotoazza.data.models.services.ServiceRequest
 import com.thiagotoazza.data.models.services.ServiceResponse
 import com.thiagotoazza.data.models.services.toServiceResponse
 import com.thiagotoazza.data.models.vehicles.toVehicleResponse
-import com.thiagotoazza.data.source.service.MongoServiceDataSource
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
+import com.thiagotoazza.data.source.service.MongoServiceDataSource
 import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
 import com.thiagotoazza.utils.Constants
 import com.thiagotoazza.utils.ResponseError
@@ -20,7 +20,6 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import org.bson.BsonDateTime
 import org.bson.types.ObjectId
 
 fun Route.servicesRoute() {
@@ -40,16 +39,19 @@ fun Route.servicesRoute() {
                 }
 
                 val date = try {
-                    BsonDateTime(dateQueryParam.toLong()).value
+                    dateQueryParam.split("-")
                 } catch (_: IllegalArgumentException) {
                     return@get call.respond(
                         HttpStatusCode.BadRequest,
                         ResponseError(HttpStatusCode.BadRequest.value, "Invalid service date")
                     )
                 }
-                val services = servicesDataSource.getServicesFromWasherIdAndDate(washerId, date).map { service ->
-                    buildResponse(service)
-                }
+                val services = servicesDataSource.getServicesByWasherIdAndDate(
+                    washerId = washerId,
+                    year = date[0],
+                    month = date[1],
+                    day = date[2]
+                ).map { service -> buildResponse(service) }
                 call.respond(HttpStatusCode.OK, services)
             } else {
                 val services = servicesDataSource.getServices(washerId).map { service -> buildResponse(service) }

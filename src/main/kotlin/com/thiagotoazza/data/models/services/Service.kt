@@ -13,6 +13,7 @@ data class Service(
     val date: BsonDateTime,
     val type: String,
     val cost: Double,
+    val shortDate: String? = null,
     @BsonId val id: ObjectId = ObjectId(),
 )
 

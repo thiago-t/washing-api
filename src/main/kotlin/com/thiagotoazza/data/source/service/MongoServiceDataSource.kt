@@ -1,5 +1,8 @@
 package com.thiagotoazza.data.source.service
 
+import com.mongodb.client.model.Aggregates
+import com.mongodb.client.model.Field
+import com.mongodb.client.model.Filters
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import com.thiagotoazza.data.models.customer.Customer
@@ -22,7 +25,10 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
 
     companion object {
         private const val ACTION_PUSH = "\$push"
+        private const val ACTION_TO_DATE = "\$toDate"
+        private const val ACTION_DATE_TO_STRING = "\$dateToString"
         private const val KEY_SERVICES = "services"
+        private const val KEY_FORMAT = "format"
     }
 
     private val customersCollection = database.getCollection<Customer>(Constants.KEY_CUSTOMERS_COLLECTION)
@@ -39,9 +45,24 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
         return servicesCollection.find(query).toList()
     }
 
-    override suspend fun getServicesFromWasherIdAndDate(washerId: String, date: Long): List<Service> {
-        val query = Document(Constants.KEY_WASHER_ID, ObjectId(washerId)).append(Constants.KEY_DATE, BsonDateTime(date))
-        return servicesCollection.find(query).toList()
+    override suspend fun getServicesByWasherIdAndDate(
+        washerId: String,
+        year: String,
+        month: String,
+        day: String
+    ): List<Service> {
+        val dateToStringField = Document(KEY_FORMAT, "%Y-%m-%d")
+            .append(
+                Service::date.name, Document(ACTION_TO_DATE, "\$${Service::date.name}")
+            )
+        return servicesCollection.aggregate<Service>(
+            listOf(
+                Aggregates.addFields(
+                    Field(Service::shortDate.name, Document(ACTION_DATE_TO_STRING, dateToStringField)),
+                ),
+                Aggregates.match(Filters.regex(Service::shortDate.name, "^$year-$month-$day"))
+            )
+        ).toList()
     }
 
     override suspend fun getServicesById(id: String?): Service? {
