@@ -32,6 +32,11 @@ class MongoVehicleDataSource(
         return vehiclesCollection.insertOne(vehicle).wasAcknowledged()
     }
 
+    override suspend fun updateVehicle(vehicle: Vehicle): Boolean {
+        val query = Document("_id", vehicle.id)
+        return vehiclesCollection.replaceOne(query, vehicle).wasAcknowledged()
+    }
+
     override suspend fun deleteVehicle(id: String?): Boolean {
         val query = Document("_id", ObjectId(id))
         return vehiclesCollection.deleteOne(query).wasAcknowledged()

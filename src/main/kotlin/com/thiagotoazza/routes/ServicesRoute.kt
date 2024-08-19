@@ -1,11 +1,13 @@
 package com.thiagotoazza.routes
 
 import com.thiagotoazza.data.WashingDatabase
+import com.thiagotoazza.data.models.customer.Customer
 import com.thiagotoazza.data.models.customer.toCustomerResponse
 import com.thiagotoazza.data.models.services.Service
 import com.thiagotoazza.data.models.services.ServiceRequest
 import com.thiagotoazza.data.models.services.ServiceResponse
 import com.thiagotoazza.data.models.services.toServiceResponse
+import com.thiagotoazza.data.models.vehicles.Vehicle
 import com.thiagotoazza.data.models.vehicles.toVehicleResponse
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
 import com.thiagotoazza.data.source.service.MongoServiceDataSource
@@ -25,6 +27,8 @@ import org.bson.types.ObjectId
 fun Route.servicesRoute() {
     route("/services") {
         val servicesDataSource = MongoServiceDataSource(WashingDatabase.database)
+        val customersDataSource = MongoCustomerDataSource(WashingDatabase.database)
+        val vehiclesDataSource = MongoVehicleDataSource(WashingDatabase.database)
 
         get {
             val washerId = call.parameters[Constants.KEY_WASHER_ID].orEmpty()
@@ -76,6 +80,46 @@ fun Route.servicesRoute() {
             } else {
                 call.respond(HttpStatusCode.Conflict)
             }
+        }
+
+        put("/{id}") {
+            val washerId = call.parameters[Constants.KEY_WASHER_ID].orEmpty()
+            val serviceId = call.parameters[Constants.KEY_ID] ?: return@put call.respond(HttpStatusCode.BadRequest)
+            val service = servicesDataSource.getServicesById(serviceId)
+            val serviceResponse = call.receive<ServiceRequest>().run {
+                async {
+                    val toUpdateCustomer = Customer(
+                        id = ObjectId(service?.customerId.toString()),
+                        washerId = ObjectId(washerId),
+                        fullName = customer.fullName,
+                        phoneNumber = customer.phoneNumber
+                    )
+                    customersDataSource.updateCustomer(toUpdateCustomer)
+
+                    val toUpdateVehicle = Vehicle(
+                        id = ObjectId(service?.vehicleId.toString()),
+                        washerId = ObjectId(washerId),
+                        model = vehicle.model,
+                        plate = vehicle.plate,
+                    )
+                    vehiclesDataSource.updateVehicle(toUpdateVehicle)
+
+                    val toUpdateService = service?.copy(
+                        type = type,
+                        cost = cost
+                    )
+                    toUpdateService?.let { service ->
+                        servicesDataSource.updateService(service)
+
+                    }
+                    service!!.toServiceResponse(
+                        customer = toUpdateCustomer.toCustomerResponse(),
+                        vehicle = toUpdateVehicle.toVehicleResponse()
+                    )
+                }.await()
+            }
+
+            call.respond(HttpStatusCode.OK, serviceResponse)
         }
 
         delete("/{id}") {

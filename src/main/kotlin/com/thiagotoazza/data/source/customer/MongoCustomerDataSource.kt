@@ -30,6 +30,11 @@ class MongoCustomerDataSource(database: MongoDatabase) : CustomerDataSource {
         return customersCollection.insertOne(customer).wasAcknowledged()
     }
 
+    override suspend fun updateCustomer(customer: Customer): Boolean {
+        val query = Document("_id", customer.id)
+        return customersCollection.replaceOne(query, customer).wasAcknowledged()
+    }
+
     override suspend fun deleteCustomer(id: String?): Boolean {
         val query = Document("_id", ObjectId(id))
         return customersCollection.deleteOne(query).wasAcknowledged()

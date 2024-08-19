@@ -7,5 +7,6 @@ interface VehicleDataSource {
     suspend fun getVehiclesFromWasher(washerId: String): List<Vehicle>
     suspend fun getVehicleById(id: String?): Vehicle?
     suspend fun insertVehicle(vehicle: Vehicle): Boolean
+    suspend fun updateVehicle(vehicle: Vehicle): Boolean
     suspend fun deleteVehicle(id: String?): Boolean
 }

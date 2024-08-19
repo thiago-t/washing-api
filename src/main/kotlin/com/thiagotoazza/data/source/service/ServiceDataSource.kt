@@ -9,5 +9,6 @@ interface ServiceDataSource {
     suspend fun getServicesByWasherIdAndDate(washerId: String, year: String, month: String, day: String): List<Service>
     suspend fun getServicesById(id: String?): Service?
     suspend fun insertService(washerId: String, serviceRequest: ServiceRequest): Boolean
+    suspend fun updateService(service: Service): Boolean
     suspend fun deleteService(id: String): Boolean
 }

@@ -94,6 +94,11 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
         return true
     }
 
+    override suspend fun updateService(service: Service): Boolean {
+        val query = Document("_id", service.id)
+        return servicesCollection.replaceOne(query, service).wasAcknowledged()
+    }
+
     override suspend fun deleteService(id: String): Boolean {
         val query = Document("_id", ObjectId(id))
         return servicesCollection.deleteOne(query).wasAcknowledged()

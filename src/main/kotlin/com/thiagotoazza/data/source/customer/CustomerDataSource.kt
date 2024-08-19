@@ -7,5 +7,6 @@ interface CustomerDataSource {
     suspend fun getCustomersFromWasher(washerId: String): List<Customer>
     suspend fun getCustomerById(id: String?): Customer?
     suspend fun insertCustomer(customer: Customer): Boolean
+    suspend fun updateCustomer(customer: Customer): Boolean
     suspend fun deleteCustomer(id: String?): Boolean
 }
