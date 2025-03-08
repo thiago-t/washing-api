@@ -11,6 +11,7 @@ import com.thiagotoazza.data.models.services.Service
 import com.thiagotoazza.data.models.services.ServiceRequest
 import com.thiagotoazza.data.models.vehicles.Vehicle
 import com.thiagotoazza.utils.Constants
+import com.thiagotoazza.utils.DateFilter
 import com.thiagotoazza.utils.toShortDate
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -47,20 +48,21 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
 
     override suspend fun getServicesByWasherIdAndDate(
         washerId: String,
-        year: String,
-        month: String,
-        day: String
+        dateFilter: DateFilter
     ): List<Service> {
-        val dateToStringField = Document(KEY_FORMAT, "%Y-%m-%d")
+        val dateToStringField = Document(KEY_FORMAT, dateFilter.aggregationFormat)
             .append(
                 Service::date.name, Document(ACTION_TO_DATE, "\$${Service::date.name}")
             )
         return servicesCollection.aggregate<Service>(
             listOf(
+                Aggregates.match(
+                    Filters.eq(Constants.KEY_WASHER_ID, ObjectId(washerId))
+                ),
                 Aggregates.addFields(
                     Field(Service::shortDate.name, Document(ACTION_DATE_TO_STRING, dateToStringField)),
                 ),
-                Aggregates.match(Filters.regex(Service::shortDate.name, "^$year-$month-$day"))
+                Aggregates.match(Filters.regex(Service::shortDate.name, dateFilter.regex))
             )
         ).toList()
     }
