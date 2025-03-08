@@ -3,6 +3,8 @@ package com.thiagotoazza.routes
 import com.thiagotoazza.data.WashingDatabase
 import com.thiagotoazza.data.models.customer.Customer
 import com.thiagotoazza.data.models.customer.toCustomerResponse
+import com.thiagotoazza.data.models.report.ReportResponse
+import com.thiagotoazza.data.models.report.ReportV2
 import com.thiagotoazza.data.models.services.Service
 import com.thiagotoazza.data.models.services.ServiceRequest
 import com.thiagotoazza.data.models.services.ServiceResponse
@@ -24,6 +26,11 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.bson.types.ObjectId
+import java.time.LocalDate
+import java.time.Year
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 class ServicesRoute(
     private val servicesDataSource: MongoServiceDataSource,
@@ -48,30 +55,35 @@ class ServicesRoute(
                     val services = servicesDataSource.getServices(washerId).map { service -> buildResponse(service) }
                     call.respond(HttpStatusCode.OK, services)
                 } else {
-                    val date = try {
-                        dateQueryParam.split("-")
-                    } catch (_: IllegalArgumentException) {
+                    val dateFilter = try {
+                        when (dateQueryParam.count { it == '-' }) {
+                            2 -> {
+                                val date = LocalDate.parse(dateQueryParam, DateTimeFormatter.ISO_LOCAL_DATE)
+                                DateFilter.FullDate(date.year, date.monthValue, date.dayOfMonth)
+                            }
+
+                            1 -> {
+                                val yearMonth = YearMonth.parse(dateQueryParam, DateTimeFormatter.ofPattern("yyyy-MM"))
+                                DateFilter.YearMonth(yearMonth.year, yearMonth.monthValue)
+                            }
+
+                            else -> {
+                                val year = Year.parse(dateQueryParam, DateTimeFormatter.ofPattern("yyyy"))
+                                DateFilter.Year(year.value)
+                            }
+                        }
+                    } catch (e: DateTimeParseException) {
                         return@get call.respond(
                             HttpStatusCode.BadRequest,
                             ResponseError(HttpStatusCode.BadRequest.value, "Invalid service date")
                         )
                     }
 
-                    val dateFilter = when (date.size) {
-                        3 -> DateFilter.FullDate(year = date[0], month = date[1], day = date[2])
-                        2 -> DateFilter.MonthYear(year = date[0], month = date[1])
-                        1 -> DateFilter.Year(year = date[0])
-                        else -> return@get call.respond(
-                            HttpStatusCode.BadRequest,
-                            ResponseError(HttpStatusCode.BadRequest.value, "Invalid service date")
-                        )
-                    }
-
-                    val services = servicesDataSource.getServicesByWasherIdAndDate(
+                    val reports = servicesDataSource.getServicesByWasherIdAndDate(
                         washerId = washerId,
                         dateFilter = dateFilter
-                    ).map { service -> buildResponse(service) }
-                    call.respond(services)
+                    ).map { buildReportResponse(it) }
+                    call.respond(reports)
                 }
             }
 
@@ -161,6 +173,15 @@ class ServicesRoute(
                 )
             }
         }.await()
+    }
+
+    private suspend fun buildReportResponse(report: ReportV2): ReportResponse {
+        return ReportResponse(
+            date = report.date,
+            totalServices = report.totalServices,
+            totalRevenue = report.totalRevenue,
+            services = report.services.map { service -> buildResponse(service) }
+        )
     }
 
 }
