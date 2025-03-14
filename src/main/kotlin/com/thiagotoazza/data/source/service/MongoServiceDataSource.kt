@@ -74,7 +74,7 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
                 Aggregates.group(
                     "\$${Service::shortDate.name}",
                     Accumulators.push(ReportResponse::services.name, "\$\$ROOT"),
-                    Accumulators.sum(ReportResponse::totalServices.name, 1),
+                    Accumulators.sum(ReportResponse::totalCustomers.name, 1),
                     Accumulators.sum(ReportResponse::totalRevenue.name, "\$cost")
                 ),
                 Aggregates.project(
@@ -82,7 +82,7 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
                         Projections.excludeId(),
                         Projections.include(
                             ReportResponse::services.name,
-                            ReportResponse::totalServices.name,
+                            ReportResponse::totalCustomers.name,
                             ReportResponse::totalRevenue.name
                         ),
                         Projections.computed(ReportResponse::date.name, "\$_id"),

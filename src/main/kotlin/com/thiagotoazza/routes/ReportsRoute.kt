@@ -73,7 +73,7 @@ class ReportsRoute(
                     // TEMPORARY CODE TO CLEAR NULL SERVICES
                     val nonNullServices = services.filterNotNull()
                     report.toReportResponse(nonNullServices)
-                }?.filter { it.totalServices >= 1 }
+                }?.filter { it.totalCustomers >= 1 }
                 reports?.let {
                     val sortedReports = it.sortedWith(compareByDescending { it.date })
                     call.respond(HttpStatusCode.OK, sortedReports)

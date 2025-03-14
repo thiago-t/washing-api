@@ -178,7 +178,7 @@ class ServicesRoute(
     private suspend fun buildReportResponse(report: ReportV2): ReportResponse {
         return ReportResponse(
             date = report.date,
-            totalServices = report.totalServices,
+            totalCustomers = report.totalCustomers,
             totalRevenue = report.totalRevenue,
             services = report.services.map { service -> buildResponse(service) }
         )
