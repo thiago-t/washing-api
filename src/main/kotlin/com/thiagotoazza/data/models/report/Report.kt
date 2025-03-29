@@ -12,7 +12,6 @@ data class Report(
 
 fun Report.toReportResponse(services: List<ServiceResponse?>): ReportResponse {
     return ReportResponse(
-        id = id.toString(),
         date = date,
         totalCustomers = services.size,
         totalRevenue = services.run {

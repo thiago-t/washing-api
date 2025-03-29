@@ -8,9 +8,7 @@ import kotlinx.coroutines.flow.toList
 import org.bson.Document
 import org.bson.types.ObjectId
 
-class MongoVehicleDataSource(
-    database: MongoDatabase
-) : VehicleDataSource {
+class MongoVehicleDataSource(database: MongoDatabase) : VehicleDataSource {
 
     private val vehiclesCollection = database.getCollection<Vehicle>(Constants.KEY_VEHICLES_COLLECTION)
 
