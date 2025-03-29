@@ -1,2 +1,2 @@
-runtime: java11
+runtime: java17
 entrypoint: 'java -jar build/libs/washing-api-all.jar'

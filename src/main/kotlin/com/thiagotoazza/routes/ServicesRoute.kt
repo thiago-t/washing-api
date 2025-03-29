@@ -3,6 +3,8 @@ package com.thiagotoazza.routes
 import com.thiagotoazza.data.WashingDatabase
 import com.thiagotoazza.data.models.customer.Customer
 import com.thiagotoazza.data.models.customer.toCustomerResponse
+import com.thiagotoazza.data.models.report.ReportResponse
+import com.thiagotoazza.data.models.report.ReportV2
 import com.thiagotoazza.data.models.services.Service
 import com.thiagotoazza.data.models.services.ServiceRequest
 import com.thiagotoazza.data.models.services.ServiceResponse
@@ -13,6 +15,7 @@ import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
 import com.thiagotoazza.data.source.service.MongoServiceDataSource
 import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
 import com.thiagotoazza.utils.Constants
+import com.thiagotoazza.utils.DateFilter
 import com.thiagotoazza.utils.ResponseError
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -23,6 +26,11 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.bson.types.ObjectId
+import java.time.LocalDate
+import java.time.Year
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 class ServicesRoute(
     private val servicesDataSource: MongoServiceDataSource,
@@ -36,32 +44,46 @@ class ServicesRoute(
                 val washerId = call.parameters[Constants.KEY_WASHER_ID].orEmpty()
                 val dateQueryParam = call.request.queryParameters[Constants.KEY_DATE].orEmpty()
 
-                if (washerId.isNotEmpty() && dateQueryParam.isNotEmpty()) {
-                    if (ObjectId.isValid(washerId).not()) {
-                        return@get call.respond(
-                            HttpStatusCode.BadRequest,
-                            ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
-                        )
-                    }
+                if (ObjectId.isValid(washerId).not()) {
+                    return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
+                    )
+                }
 
-                    val date = try {
-                        dateQueryParam.split("-")
-                    } catch (_: IllegalArgumentException) {
+                if (dateQueryParam.isBlank()) {
+                    val services = servicesDataSource.getServices(washerId).map { service -> buildResponse(service) }
+                    call.respond(HttpStatusCode.OK, services)
+                } else {
+                    val dateFilter = try {
+                        when (dateQueryParam.count { it == '-' }) {
+                            2 -> {
+                                val date = LocalDate.parse(dateQueryParam, DateTimeFormatter.ISO_LOCAL_DATE)
+                                DateFilter.FullDate(date.year, date.monthValue, date.dayOfMonth)
+                            }
+
+                            1 -> {
+                                val yearMonth = YearMonth.parse(dateQueryParam, DateTimeFormatter.ofPattern("yyyy-MM"))
+                                DateFilter.YearMonth(yearMonth.year, yearMonth.monthValue)
+                            }
+
+                            else -> {
+                                val year = Year.parse(dateQueryParam, DateTimeFormatter.ofPattern("yyyy"))
+                                DateFilter.Year(year.value)
+                            }
+                        }
+                    } catch (e: DateTimeParseException) {
                         return@get call.respond(
                             HttpStatusCode.BadRequest,
                             ResponseError(HttpStatusCode.BadRequest.value, "Invalid service date")
                         )
                     }
-                    val services = servicesDataSource.getServicesByWasherIdAndDate(
+
+                    val reports = servicesDataSource.getServicesByWasherIdAndDate(
                         washerId = washerId,
-                        year = date[0],
-                        month = date[1],
-                        day = date[2]
-                    ).map { service -> buildResponse(service) }
-                    call.respond(HttpStatusCode.OK, services)
-                } else {
-                    val services = servicesDataSource.getServices(washerId).map { service -> buildResponse(service) }
-                    call.respond(HttpStatusCode.OK, services)
+                        dateFilter = dateFilter
+                    ).map { buildReportResponse(it) }
+                    call.respond(reports)
                 }
             }
 
@@ -151,6 +173,15 @@ class ServicesRoute(
                 )
             }
         }.await()
+    }
+
+    private suspend fun buildReportResponse(report: ReportV2): ReportResponse {
+        return ReportResponse(
+            date = report.date,
+            totalCustomers = report.totalCustomers,
+            totalRevenue = report.totalRevenue,
+            services = report.services.map { service -> buildResponse(service) }
+        )
     }
 
 }
