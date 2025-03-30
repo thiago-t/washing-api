@@ -34,7 +34,7 @@ class AuthorizationRoute(
                 return@post
             }
 
-            val areFieldsBlank = request.username.isBlank() || request.password.isBlank()
+            val areFieldsBlank = request.username.isBlank() || request.email.isBlank() || request.password.isBlank()
             val isPasswordTooShort = request.password.length < 8
             if (areFieldsBlank || isPasswordTooShort) {
                 call.respond(
@@ -44,17 +44,29 @@ class AuthorizationRoute(
                 return@post
             }
 
-            val saltedHash = hashingService.generateSaltedHash(request.password)
-            val user = User(
-                username = request.username,
-                password = saltedHash.hash,
-                salt = saltedHash.salt
-            )
-            val wasAcknowledged = userDataSource.insertUser(user)
-            if (!wasAcknowledged) {
+            val isExistingUser = userDataSource.getUserByEmail(request.email) != null
+            if (isExistingUser) {
                 call.respond(
                     HttpStatusCode.Conflict,
                     ResponseError(HttpStatusCode.Conflict.value, "User already exists")
+                )
+                return@post
+            }
+
+            val saltedHash = hashingService.generateSaltedHash(request.password)
+            val user = User(
+                username = request.username,
+                email = request.email,
+                password = saltedHash.hash,
+                role = request.role,
+                companyIds = listOf(),
+                salt = saltedHash.salt
+            )
+            val wasAcknowledged = userDataSource.insertUser(user)
+            if (wasAcknowledged.not()) {
+                call.respond(
+                    HttpStatusCode.Conflict,
+                    ResponseError(HttpStatusCode.Conflict.value, "Something went wrong")
                 )
                 return@post
             }
@@ -73,7 +85,7 @@ class AuthorizationRoute(
                 return@post
             }
 
-            val user = userDataSource.getUserByUsername(request.username)
+            val user = userDataSource.getUserByEmail(request.email)
             if (user == null) {
                 call.respond(
                     HttpStatusCode.Conflict,

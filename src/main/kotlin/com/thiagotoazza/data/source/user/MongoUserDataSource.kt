@@ -10,8 +10,8 @@ class MongoUserDataSource(database: MongoDatabase) : UserDataSource {
 
     private val usersCollection = database.getCollection<User>(Constants.KEY_USERS_COLLECTION)
 
-    override suspend fun getUserByUsername(username: String): User? {
-        val query = Document(User::username.name, username)
+    override suspend fun getUserByEmail(email: String): User? {
+        val query = Document(User::email.name, email)
         return usersCollection.find(query).firstOrNull()
     }
 
