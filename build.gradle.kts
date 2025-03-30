@@ -1,5 +1,6 @@
 val ktor_version: String by project
 val kotlin_version: String by project
+val commons_codec_version: String by project
 val logback_version: String by project
 val koin_version: String by project
 
@@ -21,6 +22,7 @@ application {
 
 repositories {
     mavenCentral()
+    maven { url = uri("https://maven.pkg.jetbrains.space/public/p/ktor/eap") }
 }
 
 dependencies {
@@ -28,7 +30,13 @@ dependencies {
     implementation("io.ktor:ktor-server-content-negotiation-jvm")
     implementation("io.ktor:ktor-serialization-gson-jvm")
     implementation("io.ktor:ktor-server-netty-jvm")
+    implementation("io.ktor:ktor-server-call-logging-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-auth-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-auth-jwt-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-netty-jvm:$ktor_version")
+
     implementation("ch.qos.logback:logback-classic:$logback_version")
+    implementation("commons-codec:commons-codec:$commons_codec_version")
 
     // KOIN (DI)
     implementation("io.insert-koin:koin-ktor:$koin_version")
