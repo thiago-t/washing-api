@@ -118,10 +118,15 @@ class AuthorizationRoute(
                 )
             )
 
-            call.respond(
-                status = HttpStatusCode.OK,
-                message = AuthResponse(token = token)
-            )
+            user.let {
+                call.respond(
+                    status = HttpStatusCode.OK,
+                    message = AuthResponse(
+                        user = it.toUserResponse(),
+                        token = token
+                    )
+                )
+            }
         }
     }
 

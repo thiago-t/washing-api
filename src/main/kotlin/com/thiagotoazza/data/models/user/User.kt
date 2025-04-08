@@ -11,4 +11,17 @@ data class User(
     val companyIds: List<ObjectId>?,
     val salt: String,
     @BsonId val id: ObjectId = ObjectId()
-)
+) {
+
+    fun toUserResponse(): UserResponse {
+        return UserResponse(
+            id = id.toString(),
+            username = username,
+            email = email,
+            role = role,
+            creationDate = id.timestamp,
+            companyIds = companyIds?.map { it.toString() }
+        )
+    }
+
+}
