@@ -1,4 +1,4 @@
-package com.thiagotoazza.data.models.user
+package com.thiagotoazza.data.models.authorization
 
 import kotlinx.serialization.Serializable
 

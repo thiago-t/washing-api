@@ -1,7 +1,7 @@
 package com.thiagotoazza.routes
 
-import com.thiagotoazza.data.models.user.AuthRequest
-import com.thiagotoazza.data.models.user.AuthResponse
+import com.thiagotoazza.data.models.authorization.AuthRequest
+import com.thiagotoazza.data.models.authorization.AuthResponse
 import com.thiagotoazza.data.models.user.User
 import com.thiagotoazza.data.source.user.UserDataSource
 import com.thiagotoazza.security.hashing.HashingService
