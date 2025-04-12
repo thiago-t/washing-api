@@ -8,6 +8,10 @@ import com.thiagotoazza.data.source.service.MongoServiceDataSource
 import com.thiagotoazza.data.source.user.MongoUserDataSource
 import com.thiagotoazza.data.source.user.UserDataSource
 import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
+import com.thiagotoazza.routes.CustomersRoute
+import com.thiagotoazza.routes.ReportsRoute
+import com.thiagotoazza.routes.ServicesRoute
+import com.thiagotoazza.routes.VehiclesRoute
 import com.thiagotoazza.routes.*
 import com.thiagotoazza.security.hashing.HashingService
 import com.thiagotoazza.security.hashing.SHA256HashingService
