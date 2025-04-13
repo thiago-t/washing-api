@@ -13,3 +13,7 @@ fun Long.toShortDate(): String {
         LocalDate.ofInstant(instant, ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE)
     }
 }
+
+fun Int.asDecimalString(): String {
+    return String.format("%.2f", this / 100.0)
+}
