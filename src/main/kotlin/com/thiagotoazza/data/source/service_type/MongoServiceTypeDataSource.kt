@@ -12,12 +12,12 @@ class MongoServiceTypeDataSource(database: MongoDatabase) : ServiceTypeDataSourc
 
     private val serviceTypeCollection = database.getCollection<ServiceType>(Constants.KEY_SERVICE_TYPE_COLLECTION)
 
-    override suspend fun getServiceTypes(washerId: String): List<ServiceType> {
+    override suspend fun getServiceTypes(washerId: String?): List<ServiceType> {
         val query = Document(Constants.KEY_WASHER_ID, ObjectId(washerId))
         return serviceTypeCollection.find(query).toList()
     }
 
-    override suspend fun getServiceTypeById(washerId: String, serviceTypeId: String): ServiceType? {
+    override suspend fun getServiceTypeById(washerId: String?, serviceTypeId: String?): ServiceType? {
         val query = Document("_id", ObjectId(serviceTypeId)).append(Constants.KEY_WASHER_ID, ObjectId(washerId))
         return serviceTypeCollection.find(query).firstOrNull()
     }
@@ -26,12 +26,12 @@ class MongoServiceTypeDataSource(database: MongoDatabase) : ServiceTypeDataSourc
         return serviceTypeCollection.insertOne(serviceType).wasAcknowledged()
     }
 
-    override suspend fun updateServiceType(serviceTypeId: String, serviceType: ServiceType): Boolean {
+    override suspend fun updateServiceType(serviceTypeId: String?, serviceType: ServiceType): Boolean {
         val query = Document("_id", ObjectId(serviceTypeId))
         return serviceTypeCollection.replaceOne(query, serviceType).wasAcknowledged()
     }
 
-    override suspend fun deleteServiceType(serviceTypeId: String): Boolean {
+    override suspend fun deleteServiceType(serviceTypeId: String?): Boolean {
         val query = Document("_id", ObjectId(serviceTypeId))
         return serviceTypeCollection.deleteOne(query).wasAcknowledged()
     }
