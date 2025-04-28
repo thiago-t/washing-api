@@ -17,6 +17,7 @@ import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
 import com.thiagotoazza.utils.Constants
 import com.thiagotoazza.utils.DateFilter
 import com.thiagotoazza.utils.ResponseError
+import com.thiagotoazza.utils.isValidObjectId
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
@@ -44,7 +45,7 @@ class ServicesRoute(
                 val washerId = call.parameters[Constants.KEY_WASHER_ID].orEmpty()
                 val dateQueryParam = call.request.queryParameters[Constants.KEY_DATE].orEmpty()
 
-                if (ObjectId.isValid(washerId).not()) {
+                if (washerId.isValidObjectId().not()) {
                     return@get call.respond(
                         HttpStatusCode.BadRequest,
                         ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")

@@ -19,7 +19,7 @@ class MongoReportDataSource(database: MongoDatabase) : ReportDataSource {
         return reportsCollection.find().toList()
     }
 
-    override suspend fun getReportsBy(washerId: String, year: String, month: String): List<Report>? {
+    override suspend fun getReportsBy(washerId: String?, year: String, month: String): List<Report>? {
         val query = Document(Constants.KEY_WASHER_ID, ObjectId(washerId))
             .append(Constants.KEY_DATE, Document(ACTION_REGEX, "^$year-$month"))
         return reportsCollection.find(query).toList()

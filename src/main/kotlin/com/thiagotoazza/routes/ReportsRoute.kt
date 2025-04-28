@@ -10,11 +10,11 @@ import com.thiagotoazza.data.source.service.MongoServiceDataSource
 import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
 import com.thiagotoazza.utils.Constants
 import com.thiagotoazza.utils.ResponseError
+import com.thiagotoazza.utils.isValidObjectId
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.bson.types.ObjectId
 
 class ReportsRoute(
     private val reportsDataSource: MongoReportDataSource,
@@ -29,7 +29,7 @@ class ReportsRoute(
                 val washerId = call.parameters[Constants.KEY_WASHER_ID]
                 val date = call.request.queryParameters[Constants.KEY_DATE]
 
-                if (washerId == null || ObjectId.isValid(washerId).not()) {
+                if (washerId.isValidObjectId().not()) {
                     return@get call.respond(
                         HttpStatusCode.BadRequest,
                         ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")

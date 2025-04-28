@@ -4,6 +4,7 @@ import com.thiagotoazza.data.models.service_type.ServiceType
 import com.thiagotoazza.data.source.service_type.ServiceTypeDataSource
 import com.thiagotoazza.utils.Constants
 import com.thiagotoazza.utils.ResponseError
+import com.thiagotoazza.utils.isValidObjectId
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -20,7 +21,7 @@ class ServiceTypeRoute(
             get {
                 val washerId = call.parameters[Constants.KEY_WASHER_ID]
 
-                if (washerId == null || ObjectId.isValid(washerId).not()) {
+                if (washerId.isValidObjectId().not()) {
                     return@get call.respond(
                         HttpStatusCode.BadRequest,
                         ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
@@ -36,14 +37,14 @@ class ServiceTypeRoute(
                 val washerId = call.parameters[Constants.KEY_WASHER_ID]
                 val serviceTypeId = call.parameters[Constants.KEY_ID]
 
-                if (washerId == null || ObjectId.isValid(washerId).not()) {
+                if (washerId.isValidObjectId().not()) {
                     return@get call.respond(
                         HttpStatusCode.BadRequest,
                         ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
                     )
                 }
 
-                if (serviceTypeId == null || ObjectId.isValid(serviceTypeId).not()) {
+                if (serviceTypeId.isValidObjectId().not()) {
                     return@get call.respond(
                         HttpStatusCode.BadRequest,
                         ResponseError(HttpStatusCode.BadRequest.value, "Invalid service type ID")
@@ -68,7 +69,7 @@ class ServiceTypeRoute(
                     )
                 }
 
-                if (washerId == null || ObjectId.isValid(washerId).not()) {
+                if (washerId.isValidObjectId().not()) {
                     return@post call.respond(
                         HttpStatusCode.BadRequest,
                         ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
@@ -93,14 +94,14 @@ class ServiceTypeRoute(
                 val washerId = call.parameters[Constants.KEY_WASHER_ID]
                 val serviceTypeId = call.parameters[Constants.KEY_ID]
 
-                if (washerId == null || ObjectId.isValid(washerId).not()) {
+                if (washerId.isValidObjectId().not()) {
                     return@put call.respond(
                         HttpStatusCode.BadRequest,
                         ResponseError(HttpStatusCode.BadRequest.value, "Invalid company ID")
                     )
                 }
 
-                if (serviceTypeId == null || ObjectId.isValid(serviceTypeId).not()) {
+                if (serviceTypeId.isValidObjectId().not()) {
                     return@put call.respond(
                         HttpStatusCode.BadRequest,
                         ResponseError(HttpStatusCode.BadRequest.value, "Invalid service type ID")
@@ -130,19 +131,20 @@ class ServiceTypeRoute(
                 val washerId = call.parameters[Constants.KEY_WASHER_ID]
                 val serviceTypeId = call.parameters[Constants.KEY_ID]
 
-                if (serviceTypeId == null || ObjectId.isValid(serviceTypeId).not()) {
+                if (serviceTypeId.isValidObjectId().not()) {
                     return@delete call.respond(
                         HttpStatusCode.BadRequest,
                         ResponseError(HttpStatusCode.BadRequest.value, "Invalid service type ID")
                     )
                 }
 
-                if (washerId == null || ObjectId.isValid(washerId).not()) {
+                if (washerId.isValidObjectId().not()) {
                     return@delete call.respond(
                         HttpStatusCode.BadRequest,
                         ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
                     )
                 }
+
                 val serviceType = serviceTypeDataSource.getServiceTypeById(washerId, serviceTypeId) ?: run {
                     return@delete call.respond(
                         HttpStatusCode.NotFound,
