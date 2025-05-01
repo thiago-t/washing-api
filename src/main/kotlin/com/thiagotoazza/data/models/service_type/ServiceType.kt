@@ -5,8 +5,8 @@ import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
 
 data class ServiceType(
-    val serviceName: String,
-    val serviceCost: Int,
+    val name: String,
+    val cost: Int,
     val isDeleted: Boolean,
     val washerId: ObjectId,
     @BsonId val id: ObjectId = ObjectId()
@@ -14,8 +14,8 @@ data class ServiceType(
 
     fun toServiceTypeResponse() = ServiceTypeResponse(
         id = id.toString(),
-        serviceName = serviceName,
-        serviceCost = serviceCost.asDecimalString(),
+        name = name,
+        cost = cost.asDecimalString(),
         isDeleted = isDeleted,
         washerId = washerId.toString()
     )

@@ -1,6 +1,7 @@
 package com.thiagotoazza.routes
 
 import com.thiagotoazza.data.models.service_type.ServiceType
+import com.thiagotoazza.data.models.service_type.ServiceTypeRequest
 import com.thiagotoazza.data.source.service_type.ServiceTypeDataSource
 import com.thiagotoazza.utils.Constants
 import com.thiagotoazza.utils.ResponseError
@@ -77,8 +78,8 @@ class ServiceTypeRoute(
                 }
 
                 val serviceType = ServiceType(
-                    serviceName = request.serviceName,
-                    serviceCost = request.serviceCost,
+                    name = request.name,
+                    cost = request.cost,
                     isDeleted = request.isDeleted,
                     washerId = ObjectId(washerId)
                 )
@@ -108,20 +109,23 @@ class ServiceTypeRoute(
                     )
                 }
 
-                val request = call.receiveNullable<ServiceType>() ?: run {
+                val request = call.receiveNullable<ServiceTypeRequest>() ?: run {
                     return@put call.respond(
                         HttpStatusCode.BadRequest,
                         ResponseError(HttpStatusCode.BadRequest.value, "Could not parse request body.")
                     )
                 }
 
-                val serviceType = request.copy(
-                    id = ObjectId(serviceTypeId),
-                    washerId = ObjectId(washerId)
+                val serviceType = ServiceType(
+                    name = request.name,
+                    cost = request.cost,
+                    isDeleted = request.isDeleted,
+                    washerId = ObjectId(washerId),
+                    id = ObjectId(serviceTypeId)
                 )
 
                 if (serviceTypeDataSource.updateServiceType(serviceTypeId, serviceType)) {
-                    call.respond(HttpStatusCode.OK)
+                    call.respond(HttpStatusCode.OK, serviceType.toServiceTypeResponse())
                 } else {
                     call.respond(HttpStatusCode.Conflict)
                 }
