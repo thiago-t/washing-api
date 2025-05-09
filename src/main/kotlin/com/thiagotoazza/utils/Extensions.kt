@@ -22,3 +22,11 @@ fun Int.asDecimalString(): String {
 fun String?.isValidObjectId(): Boolean {
     return this != null && ObjectId.isValid(this)
 }
+
+fun String.asObjectId(): ObjectId {
+    return try {
+        ObjectId(this)
+    } catch (exception: IllegalArgumentException) {
+        throw exception
+    }
+}

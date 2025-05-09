@@ -9,6 +9,7 @@ data class ServiceResponse(
     val vehicle: VehicleResponse,
     val washerId: String,
     val date: String,
-    val type: String,
+    val typeId: String,
+    val typeName: String,
     val cost: Double
 )

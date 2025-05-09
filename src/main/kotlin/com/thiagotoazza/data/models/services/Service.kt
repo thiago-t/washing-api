@@ -10,19 +10,20 @@ data class Service(
     val customerId: ObjectId,
     val vehicleId: ObjectId,
     val washerId: ObjectId,
+    val typeId: ObjectId,
     val date: BsonDateTime,
-    val type: String,
     val cost: Double,
     val shortDate: String? = null,
     @BsonId val id: ObjectId = ObjectId(),
 )
 
-fun Service.toServiceResponse(customer: CustomerResponse, vehicle: VehicleResponse) = ServiceResponse(
+fun Service.toServiceResponse(customer: CustomerResponse, vehicle: VehicleResponse, typeName: String) = ServiceResponse(
     id = id.toString(),
     customer = customer,
     vehicle = vehicle,
     washerId = washerId.toString(),
     date = date.value.toString(),
-    type = type,
+    typeId = typeId.toString(),
+    typeName = typeName,
     cost = cost
 )

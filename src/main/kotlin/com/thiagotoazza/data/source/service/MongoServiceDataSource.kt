@@ -11,6 +11,7 @@ import com.thiagotoazza.data.models.services.ServiceRequest
 import com.thiagotoazza.data.models.vehicles.Vehicle
 import com.thiagotoazza.utils.Constants
 import com.thiagotoazza.utils.DateFilter
+import com.thiagotoazza.utils.asObjectId
 import com.thiagotoazza.utils.toShortDate
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -144,7 +145,7 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
                 vehicleId = vehicleId,
                 washerId = washerId,
                 date = BsonDateTime(date),
-                type = type,
+                typeId = typeId.asObjectId(),
                 cost = cost
             )
         }

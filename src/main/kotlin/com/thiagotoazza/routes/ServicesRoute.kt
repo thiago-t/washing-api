@@ -13,11 +13,10 @@ import com.thiagotoazza.data.models.vehicles.Vehicle
 import com.thiagotoazza.data.models.vehicles.toVehicleResponse
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
 import com.thiagotoazza.data.source.service.MongoServiceDataSource
+import com.thiagotoazza.data.source.service_type.MongoServiceTypeDataSource
+import com.thiagotoazza.data.source.service_type.ServiceTypeDataSource
 import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
-import com.thiagotoazza.utils.Constants
-import com.thiagotoazza.utils.DateFilter
-import com.thiagotoazza.utils.ResponseError
-import com.thiagotoazza.utils.isValidObjectId
+import com.thiagotoazza.utils.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.*
@@ -36,7 +35,8 @@ import java.time.format.DateTimeParseException
 class ServicesRoute(
     private val servicesDataSource: MongoServiceDataSource,
     private val customersDataSource: MongoCustomerDataSource,
-    private val vehiclesDataSource: MongoVehicleDataSource
+    private val vehiclesDataSource: MongoVehicleDataSource,
+    private val serviceTypeDataSource: ServiceTypeDataSource
 ) {
 
     fun Route.servicesRoute() {
@@ -130,16 +130,21 @@ class ServicesRoute(
                         vehiclesDataSource.updateVehicle(toUpdateVehicle)
 
                         val toUpdateService = service?.copy(
-                            type = type,
+                            typeId = typeId.asObjectId(),
                             cost = cost
                         )
                         toUpdateService?.let { service ->
                             servicesDataSource.updateService(service)
-
                         }
+
+                        val serviceType = serviceTypeDataSource
+                            .getServiceTypeById(washerId = washerId, serviceTypeId = typeId)
+                            ?.toServiceTypeResponse()
+
                         service!!.toServiceResponse(
                             customer = toUpdateCustomer.toCustomerResponse(),
-                            vehicle = toUpdateVehicle.toVehicleResponse()
+                            vehicle = toUpdateVehicle.toVehicleResponse(),
+                            typeName = serviceType?.name.toString()
                         )
                     }.await()
                 }
@@ -162,15 +167,19 @@ class ServicesRoute(
     private suspend fun buildResponse(service: Service): ServiceResponse {
         val customersDataSource = MongoCustomerDataSource(WashingDatabase.database)
         val vehiclesDataSource = MongoVehicleDataSource(WashingDatabase.database)
+        val serviceTypeDataSource = MongoServiceTypeDataSource(WashingDatabase.database)
         return coroutineScope {
             async {
                 val customer = customersDataSource.getCustomerById(service.customerId.toString())
                     ?: throw NotFoundException("Customer id (${service.customerId}) not found")
                 val vehicle = vehiclesDataSource.getVehicleById(service.vehicleId.toString())
                     ?: throw NotFoundException("Vehicle id (${service.vehicleId}) not found")
+                val serviceType = serviceTypeDataSource.getServiceTypeById(service.washerId.toString(), service.typeId.toString())
+                    ?: throw NotFoundException("Service type id (${service.typeId}) not found")
                 service.toServiceResponse(
-                    customer.toCustomerResponse(),
-                    vehicle.toVehicleResponse()
+                    customer = customer.toCustomerResponse(),
+                    vehicle = vehicle.toVehicleResponse(),
+                    typeName = serviceType.name
                 )
             }
         }.await()

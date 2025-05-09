@@ -7,6 +7,7 @@ import com.thiagotoazza.data.models.vehicles.toVehicleResponse
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
 import com.thiagotoazza.data.source.report.MongoReportDataSource
 import com.thiagotoazza.data.source.service.MongoServiceDataSource
+import com.thiagotoazza.data.source.service_type.MongoServiceTypeDataSource
 import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
 import com.thiagotoazza.utils.Constants
 import com.thiagotoazza.utils.ResponseError
@@ -20,7 +21,8 @@ class ReportsRoute(
     private val reportsDataSource: MongoReportDataSource,
     private val servicesDataSource: MongoServiceDataSource,
     private val customersDataSource: MongoCustomerDataSource,
-    private val vehiclesDataSource: MongoVehicleDataSource
+    private val vehiclesDataSource: MongoVehicleDataSource,
+    private val serviceTypeDataSource: MongoServiceTypeDataSource
 ) {
 
     fun Route.reportsRoute() {
@@ -66,7 +68,18 @@ class ReportsRoute(
                                             "Error getting vehicle id ${service.vehicleId}"
                                         )
                                     )
-                            service.toServiceResponse(customer, vehicle)
+                            val serviceType =
+                                serviceTypeDataSource
+                                    .getServiceTypeById(washerId = washerId, serviceTypeId = service.typeId.toString())
+                                    ?.toServiceTypeResponse()
+                                    ?: return@get call.respond(
+                                        HttpStatusCode.Conflict,
+                                        ResponseError(
+                                            HttpStatusCode.Conflict.value,
+                                            "Error getting service type ${service.typeId}"
+                                        )
+                                    )
+                            service.toServiceResponse(customer, vehicle, serviceType.name)
                         }
                     }
 
