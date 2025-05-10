@@ -19,6 +19,10 @@ fun Int.asDecimalString(): String {
     return String.format("%.2f", this / 100.0)
 }
 
+fun String.toDecimal(): Double? {
+    return this.filter { it.isDigit() }.toDoubleOrNull()?.div(100.0)
+}
+
 fun String?.isValidObjectId(): Boolean {
     return this != null && ObjectId.isValid(this)
 }

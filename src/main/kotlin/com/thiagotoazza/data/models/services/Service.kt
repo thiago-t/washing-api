@@ -2,6 +2,7 @@ package com.thiagotoazza.data.models.services
 
 import com.thiagotoazza.data.models.customer.CustomerResponse
 import com.thiagotoazza.data.models.vehicles.VehicleResponse
+import com.thiagotoazza.utils.asDecimalString
 import org.bson.BsonDateTime
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.types.ObjectId
@@ -12,7 +13,7 @@ data class Service(
     val washerId: ObjectId,
     val typeId: ObjectId,
     val date: BsonDateTime,
-    val cost: Double,
+    val cost: Int,
     val shortDate: String? = null,
     @BsonId val id: ObjectId = ObjectId(),
 )
@@ -25,5 +26,5 @@ fun Service.toServiceResponse(customer: CustomerResponse, vehicle: VehicleRespon
     date = date.value.toString(),
     typeId = typeId.toString(),
     typeName = typeName,
-    cost = cost
+    cost = cost.asDecimalString()
 )

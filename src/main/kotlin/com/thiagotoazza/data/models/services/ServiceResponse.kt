@@ -11,5 +11,5 @@ data class ServiceResponse(
     val date: String,
     val typeId: String,
     val typeName: String,
-    val cost: Double
+    val cost: String
 )

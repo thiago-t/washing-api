@@ -8,5 +8,5 @@ data class ServiceRequest(
     val vehicle: VehicleRequest,
     val date: Long,
     val typeId: String,
-    val cost: Double,
+    val cost: Int,
 )
