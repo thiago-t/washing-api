@@ -9,4 +9,5 @@ object Constants {
     const val KEY_VEHICLES_COLLECTION = "vehicles"
     const val KEY_SERVICES_COLLECTION = "services"
     const val KEY_REPORTS_COLLECTION = "reports"
+    const val KEY_SERVICE_TYPE_COLLECTION = "service_type"
 }

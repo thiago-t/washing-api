@@ -6,6 +6,7 @@ import com.thiagotoazza.data.models.customer.toCustomerResponse
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
 import com.thiagotoazza.utils.Constants
 import com.thiagotoazza.utils.ResponseError
+import com.thiagotoazza.utils.isValidObjectId
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -23,7 +24,7 @@ class CustomersRoute(
                 val washerId = call.parameters[Constants.KEY_WASHER_ID]
 
                 if (washerId?.isNotEmpty() == true) {
-                    if (ObjectId.isValid(washerId).not()) {
+                    if (washerId.isValidObjectId().not()) {
                         return@get call.respond(
                             HttpStatusCode.BadRequest,
                             ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")

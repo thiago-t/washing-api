@@ -17,6 +17,7 @@ fun Application.configureRouting(tokenConfig: TokenConfig) {
         val vehiclesRoute: VehiclesRoute by inject()
         val servicesRoute: ServicesRoute by inject()
         val reportsRoute: ReportsRoute by inject()
+        val serviceTypeRoute: ServiceTypeRoute by inject()
 
         get("/") {
             call.respondText("Enjoy Washing App!")
@@ -36,6 +37,7 @@ fun Application.configureRouting(tokenConfig: TokenConfig) {
             vehiclesRoute.run { vehiclesRoute() }
             servicesRoute.run { servicesRoute() }
             reportsRoute.run { reportsRoute() }
+            serviceTypeRoute.run { serviceTypeRoute() }
         }
     }
 }
