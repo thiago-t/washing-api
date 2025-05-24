@@ -117,7 +117,8 @@ class ServicesRoute(
                             id = ObjectId(service?.customerId.toString()),
                             washerId = ObjectId(washerId),
                             fullName = customer.fullName,
-                            phoneNumber = customer.phoneNumber
+                            phoneNumber = customer.phoneNumber,
+                            isDeleted = false
                         )
                         customersDataSource.updateCustomer(toUpdateCustomer)
 
