@@ -127,6 +127,7 @@ class ServicesRoute(
                             washerId = ObjectId(washerId),
                             model = vehicle.model,
                             plate = vehicle.plate,
+                            ownerId = ObjectId(vehicle.ownerId)
                         )
                         vehiclesDataSource.updateVehicle(toUpdateVehicle)
 

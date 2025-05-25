@@ -55,6 +55,7 @@ class VehiclesRoute(
                 val vehicle = Vehicle(
                     model = request.model,
                     plate = request.plate,
+                    ownerId = ObjectId(request.ownerId),
                     washerId = ObjectId(washerId),
                 )
 
@@ -62,6 +63,53 @@ class VehiclesRoute(
                     call.respond(HttpStatusCode.Created, vehicle.toVehicleResponse())
                 } else {
                     call.respond(HttpStatusCode.Conflict)
+                }
+            }
+
+            put("/{id}") {
+                val vehicleId = call.parameters[Constants.KEY_ID]
+                val washerId = call.parameters[Constants.KEY_WASHER_ID]
+
+                if (vehicleId.isValidObjectId().not()) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid vehicle ID")
+                    )
+                }
+
+                if (washerId.isValidObjectId().not()) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
+                    )
+                }
+
+                val request = call.receiveNullable<VehicleRequest>() ?: run {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid request body")
+                    )
+                }
+
+                val existingVehicle = vehiclesDataSource.getVehicleById(vehicleId)
+                    ?: return@put call.respond(
+                        HttpStatusCode.NotFound,
+                        ResponseError(HttpStatusCode.NotFound.value, "Vehicle not found")
+                    )
+
+                val updatedVehicle = existingVehicle.copy(
+                    model = request.model,
+                    plate = request.plate,
+                    ownerId = ObjectId(request.ownerId)
+                )
+
+                if (vehiclesDataSource.updateVehicle(updatedVehicle)) {
+                    call.respond(HttpStatusCode.OK, updatedVehicle.toVehicleResponse())
+                } else {
+                    call.respond(
+                        HttpStatusCode.Conflict,
+                        ResponseError(HttpStatusCode.Conflict.value, "Failed to update vehicle")
+                    )
                 }
             }
 

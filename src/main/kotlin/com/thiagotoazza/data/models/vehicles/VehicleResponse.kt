@@ -4,5 +4,6 @@ data class VehicleResponse(
     val id: String,
     val model: String,
     val plate: String,
-    val washerId: String
+    val ownerId: String,
+    val washerId: String,
 )

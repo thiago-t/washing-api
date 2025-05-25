@@ -19,6 +19,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import org.bson.BsonDateTime
+import org.bson.BsonInvalidOperationException
 import org.bson.Document
 import org.bson.types.ObjectId
 
@@ -100,8 +101,8 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
     }
 
     override suspend fun insertService(washerId: String, serviceRequest: ServiceRequest): Boolean {
-        val insertion = coroutineScope {
-            listOf(
+        try {
+            val insertedCustomerId = coroutineScope {
                 async {
                     customersCollection.insertOne(serviceRequest.customer.run {
                         Customer(
@@ -111,21 +112,37 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
                             washerId = ObjectId(washerId)
                         )
                     }).insertedId
-                },
+                }.await()
+            }
+
+            val insertedVehicleId = coroutineScope {
                 async {
                     vehiclesCollection.insertOne(serviceRequest.vehicle.run {
-                        Vehicle(model, plate, ObjectId(washerId))
+                        Vehicle(
+                            model = model,
+                            plate = plate,
+                            ownerId = insertedCustomerId?.asObjectId()?.value,
+                            washerId = ObjectId(washerId)
+                        )
                     }).insertedId
-                }
+                }.await()
+            }
+
+            val (customerId, vehicleId) = listOfNotNull(
+                insertedCustomerId?.asObjectId()?.value,
+                insertedVehicleId?.asObjectId()?.value
             )
-        }.awaitAll()
-        val customerId = insertion.getOrNull(0)?.asObjectId() ?: return false
-        val vehicleId = insertion.getOrNull(1)?.asObjectId() ?: return false
-        val service = buildService(serviceRequest, customerId.value, vehicleId.value, ObjectId(washerId))
-        if (servicesCollection.insertOne(service).wasAcknowledged()) {
-            upsertReport(service)
+
+            val service = buildService(serviceRequest, customerId, vehicleId, ObjectId(washerId))
+            return if (servicesCollection.insertOne(service).wasAcknowledged()) {
+                upsertReport(service)
+            } else {
+                false
+            }
+        } catch (exception: BsonInvalidOperationException) {
+            println(exception.message)
+            return false
         }
-        return true
     }
 
     override suspend fun updateService(service: Service): Boolean {
@@ -159,12 +176,12 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
     private suspend fun upsertReport(service: Service): Boolean {
         val shortDate = service.date.value.toShortDate()
         val query = Document(Constants.KEY_DATE, shortDate).append(Constants.KEY_WASHER_ID, service.washerId)
-        reportsCollection.findOneAndUpdate(
+        val reportAdded = reportsCollection.findOneAndUpdate(
             query,
             Document(ACTION_PUSH, mapOf(KEY_SERVICES to service.id)),
             FindOneAndUpdateOptions().upsert(true)
         )
-        return true
+        return reportAdded != null
     }
 
 }
