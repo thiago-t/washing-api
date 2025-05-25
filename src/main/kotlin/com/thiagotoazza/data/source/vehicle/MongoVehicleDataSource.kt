@@ -12,12 +12,22 @@ class MongoVehicleDataSource(database: MongoDatabase) : VehicleDataSource {
 
     private val vehiclesCollection = database.getCollection<Vehicle>(Constants.KEY_VEHICLES_COLLECTION)
 
-    override suspend fun getVehicles(): List<Vehicle> {
-        return vehiclesCollection.find().toList()
+    override suspend fun getVehicles(includeDeleted: Boolean): List<Vehicle> {
+        val query = if (!includeDeleted) {
+            Document("isDeleted", false)
+        } else {
+            Document()
+        }
+        return vehiclesCollection.find(query).toList()
     }
 
-    override suspend fun getVehiclesFromWasher(washerId: String): List<Vehicle> {
-        val query = Document(Constants.KEY_WASHER_ID, ObjectId(washerId))
+    override suspend fun getVehiclesFromWasher(washerId: String, includeDeleted: Boolean): List<Vehicle> {
+        val query = Document().apply {
+            put(Constants.KEY_WASHER_ID, ObjectId(washerId))
+            if (!includeDeleted) {
+                put("isDeleted", false)
+            }
+        }
         return vehiclesCollection.find(query).toList()
     }
 
@@ -38,6 +48,12 @@ class MongoVehicleDataSource(database: MongoDatabase) : VehicleDataSource {
     override suspend fun deleteVehicle(id: String?): Boolean {
         val query = Document("_id", ObjectId(id))
         return vehiclesCollection.deleteOne(query).wasAcknowledged()
+    }
+
+    override suspend fun softDeleteVehicle(id: String?): Boolean {
+        val vehicle = getVehicleById(id) ?: return false
+        val updatedVehicle = vehicle.copy(isDeleted = true)
+        return updateVehicle(updatedVehicle)
     }
 
 }

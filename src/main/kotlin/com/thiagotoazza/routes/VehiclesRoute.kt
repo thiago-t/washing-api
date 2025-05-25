@@ -22,6 +22,8 @@ class VehiclesRoute(
         route("/vehicles") {
             get {
                 val washerId = call.parameters[Constants.KEY_WASHER_ID]
+                val includeDeleted = call.request.queryParameters["includeDeleted"] == "true"
+                
                 if (washerId?.isNotEmpty() == true) {
                     if (washerId.isValidObjectId().not()) {
                         return@get call.respond(
@@ -29,24 +31,30 @@ class VehiclesRoute(
                             ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
                         )
                     }
-                    val vehicles = vehiclesDataSource.getVehiclesFromWasher(washerId).map { vehicle ->
-                        vehicle.toVehicleResponse()
-                    }
+                    val vehicles = vehiclesDataSource.getVehiclesFromWasher(washerId, includeDeleted)
+                        .map { it.toVehicleResponse() }
                     call.respond(HttpStatusCode.OK, vehicles)
                 } else {
-                    val vehicles = vehiclesDataSource.getVehicles().map { vehicle ->
-                        vehicle.toVehicleResponse()
-                    }
+                    val vehicles = vehiclesDataSource.getVehicles(includeDeleted)
+                        .map { it.toVehicleResponse() }
                     return@get call.respond(HttpStatusCode.OK, vehicles)
                 }
             }
 
             get("/{id}") {
                 val vehicleId = call.parameters[Constants.KEY_ID] ?: return@get call.respond(HttpStatusCode.BadRequest)
-                val vehicle = vehiclesDataSource.getVehicleById(vehicleId)
-                vehicle?.let {
-                    call.respond(HttpStatusCode.OK, it.toVehicleResponse())
+                if (vehicleId.isValidObjectId().not()) {
+                    return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid vehicle ID")
+                    )
                 }
+                val vehicle = vehiclesDataSource.getVehicleById(vehicleId)
+                    ?: return@get call.respond(
+                        HttpStatusCode.NotFound,
+                        ResponseError(HttpStatusCode.NotFound.value, "Vehicle not found")
+                    )
+                call.respond(HttpStatusCode.OK, vehicle.toVehicleResponse())
             }
 
             post {
@@ -57,6 +65,7 @@ class VehiclesRoute(
                     plate = request.plate,
                     ownerId = ObjectId(request.ownerId),
                     washerId = ObjectId(washerId),
+                    isDeleted = false
                 )
 
                 if (vehiclesDataSource.insertVehicle(vehicle)) {
@@ -97,6 +106,13 @@ class VehiclesRoute(
                         ResponseError(HttpStatusCode.NotFound.value, "Vehicle not found")
                     )
 
+                if (existingVehicle.isDeleted == true) {
+                    return@put call.respond(
+                        HttpStatusCode.NotFound,
+                        ResponseError(HttpStatusCode.NotFound.value, "Vehicle not found")
+                    )
+                }
+
                 val updatedVehicle = existingVehicle.copy(
                     model = request.model,
                     plate = request.plate,
@@ -114,12 +130,43 @@ class VehiclesRoute(
             }
 
             delete("/{id}") {
-                val vehicleId =
-                    call.parameters[Constants.KEY_ID] ?: return@delete call.respond(HttpStatusCode.BadRequest)
-                if (vehiclesDataSource.deleteVehicle(vehicleId)) {
-                    call.respond(HttpStatusCode.OK)
+                val vehicleId = call.parameters[Constants.KEY_ID]
+                val washerId = call.parameters[Constants.KEY_WASHER_ID]
+
+                if (vehicleId.isValidObjectId().not()) {
+                    return@delete call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid vehicle ID")
+                    )
+                }
+
+                if (washerId.isValidObjectId().not()) {
+                    return@delete call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
+                    )
+                }
+
+                val vehicle = vehiclesDataSource.getVehicleById(vehicleId)
+                    ?: return@delete call.respond(
+                        HttpStatusCode.NotFound,
+                        ResponseError(HttpStatusCode.NotFound.value, "Vehicle not found")
+                    )
+
+                val isHardDelete = call.request.queryParameters["force"] == "true"
+                val deleteSuccess = if (isHardDelete) {
+                    vehiclesDataSource.deleteVehicle(vehicleId)
                 } else {
-                    call.respond(HttpStatusCode.Conflict)
+                    vehiclesDataSource.softDeleteVehicle(vehicleId)
+                }
+
+                if (deleteSuccess) {
+                    call.respond(HttpStatusCode.NoContent)
+                } else {
+                    call.respond(
+                        HttpStatusCode.Conflict,
+                        ResponseError(HttpStatusCode.Conflict.value, "Failed to delete vehicle")
+                    )
                 }
             }
         }

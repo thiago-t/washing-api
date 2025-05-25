@@ -8,6 +8,7 @@ data class Vehicle(
     val plate: String,
     val ownerId: ObjectId?,
     val washerId: ObjectId?,
+    val isDeleted: Boolean? = false,
     @BsonId val id: ObjectId = ObjectId()
 )
 
@@ -16,5 +17,6 @@ fun Vehicle.toVehicleResponse() = VehicleResponse(
     model = model,
     plate = plate,
     ownerId = ownerId.toString(),
-    washerId = washerId.toString()
+    washerId = washerId.toString(),
+    isDeleted = isDeleted
 )

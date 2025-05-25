@@ -5,5 +5,6 @@ data class VehicleResponse(
     val model: String,
     val plate: String,
     val ownerId: String,
+    val isDeleted: Boolean?,
     val washerId: String,
 )
