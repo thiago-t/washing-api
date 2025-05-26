@@ -14,7 +14,7 @@ class MongoVehicleDataSource(database: MongoDatabase) : VehicleDataSource {
 
     override suspend fun getVehicles(includeDeleted: Boolean): List<Vehicle> {
         val query = if (!includeDeleted) {
-            Document("isDeleted", false)
+            Document(Constants.KEY_IS_DELETED, false)
         } else {
             Document()
         }
@@ -25,7 +25,7 @@ class MongoVehicleDataSource(database: MongoDatabase) : VehicleDataSource {
         val query = Document().apply {
             put(Constants.KEY_WASHER_ID, ObjectId(washerId))
             if (!includeDeleted) {
-                put("isDeleted", false)
+                put(Constants.KEY_IS_DELETED, false)
             }
         }
         return vehiclesCollection.find(query).toList()
