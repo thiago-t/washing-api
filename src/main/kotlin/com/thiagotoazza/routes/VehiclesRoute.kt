@@ -1,8 +1,12 @@
 package com.thiagotoazza.routes
 
+import com.thiagotoazza.data.models.customer.CustomerResponse
+import com.thiagotoazza.data.models.customer.toCustomerResponse
 import com.thiagotoazza.data.models.vehicles.Vehicle
 import com.thiagotoazza.data.models.vehicles.VehicleRequest
+import com.thiagotoazza.data.models.vehicles.toVehicleDetailsResponse
 import com.thiagotoazza.data.models.vehicles.toVehicleResponse
+import com.thiagotoazza.data.source.customer.CustomerDataSource
 import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
 import com.thiagotoazza.utils.Constants
 import com.thiagotoazza.utils.ResponseError
@@ -15,7 +19,8 @@ import io.ktor.server.routing.*
 import org.bson.types.ObjectId
 
 class VehiclesRoute(
-    private val vehiclesDataSource: MongoVehicleDataSource
+    private val vehiclesDataSource: MongoVehicleDataSource,
+    private val customersDataSource: CustomerDataSource
 ) {
 
     fun Route.vehiclesRoute() {
@@ -23,7 +28,7 @@ class VehiclesRoute(
             get {
                 val washerId = call.parameters[Constants.KEY_WASHER_ID]
                 val includeDeleted = call.request.queryParameters["includeDeleted"] == "true"
-                
+
                 if (washerId?.isNotEmpty() == true) {
                     if (washerId.isValidObjectId().not()) {
                         return@get call.respond(
@@ -31,8 +36,12 @@ class VehiclesRoute(
                             ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
                         )
                     }
+
                     val vehicles = vehiclesDataSource.getVehiclesFromWasher(washerId, includeDeleted)
-                        .map { it.toVehicleResponse() }
+                        .map { vehicle ->
+                            val owner = getOwnerById(ownerId = vehicle.ownerId.toString())
+                            vehicle.toVehicleDetailsResponse(owner = owner)
+                        }
                     call.respond(HttpStatusCode.OK, vehicles)
                 } else {
                     val vehicles = vehiclesDataSource.getVehicles(includeDeleted)
@@ -54,7 +63,8 @@ class VehiclesRoute(
                         HttpStatusCode.NotFound,
                         ResponseError(HttpStatusCode.NotFound.value, "Vehicle not found")
                     )
-                call.respond(HttpStatusCode.OK, vehicle.toVehicleResponse())
+                val owner = getOwnerById(ownerId = vehicle.ownerId.toString())
+                call.respond(HttpStatusCode.OK, vehicle.toVehicleDetailsResponse(owner = owner))
             }
 
             post {
@@ -169,6 +179,16 @@ class VehiclesRoute(
                     )
                 }
             }
+        }
+    }
+
+    private suspend fun getOwnerById(ownerId: String): CustomerResponse? {
+        return try {
+            val customerId = ObjectId(ownerId)
+            customersDataSource.getCustomerById(id = customerId.toString())?.toCustomerResponse()
+        } catch (exception: IllegalArgumentException) {
+            println(exception.message)
+            null
         }
     }
 
