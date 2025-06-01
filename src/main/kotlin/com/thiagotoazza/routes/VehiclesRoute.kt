@@ -69,7 +69,33 @@ class VehiclesRoute(
 
             post {
                 val washerId = call.parameters[Constants.KEY_WASHER_ID]
-                val request = call.receive<VehicleRequest>()
+                val request = call.receiveNullable<VehicleRequest>()
+                    ?: return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid request body")
+                    )
+
+                if (request.model.isNullOrBlank()) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid Vehicle Model")
+                    )
+                }
+
+                if (request.plate.isNullOrBlank()) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid Vehicle Plate")
+                    )
+                }
+
+                if (request.ownerId.isValidObjectId().not()) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid owner ID")
+                    )
+                }
+
                 val vehicle = Vehicle(
                     model = request.model,
                     plate = request.plate,

@@ -3,5 +3,5 @@ package com.thiagotoazza.data.models.vehicles
 data class VehicleRequest(
     val model: String,
     val plate: String,
-    val ownerId: String
+    val ownerId: String?
 )
