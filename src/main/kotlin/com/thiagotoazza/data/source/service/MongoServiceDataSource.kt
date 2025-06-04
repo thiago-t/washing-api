@@ -104,7 +104,12 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
             listOf(
                 async {
                     customersCollection.insertOne(serviceRequest.customer.run {
-                        Customer(fullName, phoneNumber, ObjectId(washerId))
+                        Customer(
+                            fullName = fullName,
+                            phoneNumber = phoneNumber,
+                            isDeleted = false,
+                            washerId = ObjectId(washerId)
+                        )
                     }).insertedId
                 },
                 async {
