@@ -1,2 +1,8 @@
 runtime: java17
 entrypoint: 'java -jar build/libs/washing-api-all.jar'
+
+# Before deploy checklist - CAUTION: DO NOT COMMIT THE CHANGES BELOW #
+#
+# WashingDatabase.kt - Insert db password
+# Application.kt - Insert JWT Secret
+#
