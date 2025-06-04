@@ -2,6 +2,7 @@ package com.thiagotoazza.di
 
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import com.thiagotoazza.data.WashingDatabase
+import com.thiagotoazza.data.source.customer.CustomerDataSource
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
 import com.thiagotoazza.data.source.report.MongoReportDataSource
 import com.thiagotoazza.data.source.service.MongoServiceDataSource
@@ -10,10 +11,6 @@ import com.thiagotoazza.data.source.service_type.ServiceTypeDataSource
 import com.thiagotoazza.data.source.user.MongoUserDataSource
 import com.thiagotoazza.data.source.user.UserDataSource
 import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
-import com.thiagotoazza.routes.CustomersRoute
-import com.thiagotoazza.routes.ReportsRoute
-import com.thiagotoazza.routes.ServicesRoute
-import com.thiagotoazza.routes.VehiclesRoute
 import com.thiagotoazza.routes.*
 import com.thiagotoazza.security.hashing.HashingService
 import com.thiagotoazza.security.hashing.SHA256HashingService
@@ -33,6 +30,7 @@ val appModule = module {
     singleOf(::MongoReportDataSource)
     singleOf(::MongoServiceDataSource)
     singleOf(::MongoCustomerDataSource)
+    singleOf(::MongoCustomerDataSource) bind CustomerDataSource::class
     singleOf(::MongoVehicleDataSource)
     singleOf(::MongoServiceTypeDataSource) bind ServiceTypeDataSource::class
 

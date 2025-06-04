@@ -127,6 +127,7 @@ class ServicesRoute(
                             washerId = ObjectId(washerId),
                             model = vehicle.model,
                             plate = vehicle.plate,
+                            ownerId = ObjectId(vehicle.ownerId)
                         )
                         vehiclesDataSource.updateVehicle(toUpdateVehicle)
 
@@ -138,14 +139,17 @@ class ServicesRoute(
                             servicesDataSource.updateService(service)
                         }
 
-                        val serviceType = serviceTypeDataSource
+                        val customer = toUpdateCustomer.toCustomerResponse()
+                        val vehicle = toUpdateVehicle.toVehicleResponse()
+                        val serviceTypeName = serviceTypeDataSource
                             .getServiceTypeById(washerId = washerId, serviceTypeId = typeId)
                             ?.toServiceTypeResponse()
+                            ?.name
 
                         service!!.toServiceResponse(
-                            customer = toUpdateCustomer.toCustomerResponse(),
-                            vehicle = toUpdateVehicle.toVehicleResponse(),
-                            typeName = serviceType?.name.toString()
+                            customer = customer,
+                            vehicle = vehicle,
+                            typeName = serviceTypeName.toString()
                         )
                     }.await()
                 }
@@ -171,16 +175,25 @@ class ServicesRoute(
         val serviceTypeDataSource = MongoServiceTypeDataSource(WashingDatabase.database)
         return coroutineScope {
             async {
-                val customer = customersDataSource.getCustomerById(service.customerId.toString())
+                val customer = customersDataSource
+                    .getCustomerById(service.customerId.toString())
+                    ?.toCustomerResponse()
                     ?: throw NotFoundException("Customer id (${service.customerId}) not found")
-                val vehicle = vehiclesDataSource.getVehicleById(service.vehicleId.toString())
+
+                val vehicle = vehiclesDataSource
+                    .getVehicleById(service.vehicleId.toString())
+                    ?.toVehicleResponse()
                     ?: throw NotFoundException("Vehicle id (${service.vehicleId}) not found")
-                val serviceType = serviceTypeDataSource.getServiceTypeById(service.washerId.toString(), service.typeId.toString())
+
+                val serviceType = serviceTypeDataSource
+                    .getServiceTypeById(service.washerId.toString(), service.typeId.toString())
+                    ?.name
                     ?: throw NotFoundException("Service type id (${service.typeId}) not found")
+
                 service.toServiceResponse(
-                    customer = customer.toCustomerResponse(),
-                    vehicle = vehicle.toVehicleResponse(),
-                    typeName = serviceType.name
+                    customer = customer,
+                    vehicle = vehicle,
+                    typeName = serviceType
                 )
             }
         }.await()
