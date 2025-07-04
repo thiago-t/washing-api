@@ -13,6 +13,7 @@ fun Application.configureRouting(tokenConfig: TokenConfig) {
         val authorizationRoute: AuthorizationRoute by inject {
             parametersOf(tokenConfig)
         }
+        val accountDeletionRoute: AccountDeletionRoute by inject()
         val customersRoute: CustomersRoute by inject()
         val vehiclesRoute: VehiclesRoute by inject()
         val servicesRoute: ServicesRoute by inject()
@@ -29,6 +30,10 @@ fun Application.configureRouting(tokenConfig: TokenConfig) {
                 signUp()
                 authenticate()
                 getSecretInfo()
+            }
+            
+            accountDeletionRoute.run {
+                deleteAccount()
             }
         }
 
