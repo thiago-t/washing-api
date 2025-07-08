@@ -46,7 +46,7 @@ class AccountDeletionRouteTest {
             accountDeletionRoute.run { deleteAccount() }
         }
 
-        client.delete("/account") {
+        client.delete("/delete-account") {
             setBody(AccountDeletionRequest(password = "correctPassword"))
             header("Authorization", "Bearer valid-token")
         }.apply {
@@ -73,7 +73,7 @@ class AccountDeletionRouteTest {
             accountDeletionRoute.run { deleteAccount() }
         }
 
-        client.delete("/account") {
+        client.delete("/delete-account") {
             setBody(AccountDeletionRequest(password = "wrongPassword"))
             header("Authorization", "Bearer valid-token")
         }.apply {
@@ -87,7 +87,7 @@ class AccountDeletionRouteTest {
             accountDeletionRoute.run { deleteAccount() }
         }
 
-        client.delete("/account") {
+        client.delete("/delete-account") {
             header("Authorization", "Bearer valid-token")
         }.apply {
             assertEquals(HttpStatusCode.BadRequest, status)
@@ -100,7 +100,7 @@ class AccountDeletionRouteTest {
             accountDeletionRoute.run { deleteAccount() }
         }
 
-        client.delete("/account") {
+        client.delete("/delete-account") {
             setBody(AccountDeletionRequest(password = ""))
             header("Authorization", "Bearer valid-token")
         }.apply {
