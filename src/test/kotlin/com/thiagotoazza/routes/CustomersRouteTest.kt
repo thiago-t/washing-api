@@ -2,7 +2,9 @@ package com.thiagotoazza.routes
 
 import com.thiagotoazza.data.models.customer.Customer
 import com.thiagotoazza.data.models.customer.CustomerRequest
+import com.thiagotoazza.data.models.vehicles.Vehicle
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
+import com.thiagotoazza.data.source.vehicle.VehicleDataSource
 import com.thiagotoazza.security.token.TokenConfig
 import com.thiagotoazza.utils.Constants
 import io.ktor.client.call.*
@@ -23,7 +25,8 @@ import kotlin.test.assertNotNull
 class CustomersRouteTest {
 
     private val mockCustomerDataSource: MongoCustomerDataSource = mock()
-    private val customersRoute = CustomersRoute(mockCustomerDataSource)
+    private val mockVehicleDataSource: VehicleDataSource = mock()
+    private val customersRoute = CustomersRoute(mockCustomerDataSource, mockVehicleDataSource)
     private val testTokenConfig = TokenConfig(
         issuer = "http://0.0.0.0:8282",
         audience = "users",
@@ -83,6 +86,188 @@ class CustomersRouteTest {
             assertNotNull(body())
         }
     }
+
+    @Test
+    fun `test get customer by vehicle plate`() = testApplication {
+        val washerId = ObjectId().toString()
+        val vehiclePlate = "ABC1234"
+        val customerId = ObjectId()
+        val customer = Customer(
+            fullName = "John Doe",
+            phoneNumber = "1234567890",
+            washerId = ObjectId(washerId),
+            isDeleted = false
+        )
+        val vehicle = Vehicle(
+            model = "Toyota Camry",
+            plate = vehiclePlate,
+            ownerId = customerId,
+            washerId = ObjectId(washerId),
+            isDeleted = false
+        )
+
+        whenever(mockVehicleDataSource.getVehicleByPlate(vehiclePlate, washerId)).thenReturn(vehicle)
+        whenever(mockCustomerDataSource.getCustomerById(customerId.toString())).thenReturn(customer)
+
+        routing {
+            customersRoute.run { customersRoute() }
+        }
+
+        client.get("/customers?${Constants.KEY_WASHER_ID}=$washerId&${Constants.KEY_PLATE}=$vehiclePlate").apply {
+            assertEquals(HttpStatusCode.OK, status)
+            assertNotNull(body())
+        }
+    }
+
+    @Test
+    fun `test get customer by vehicle plate - vehicle not found`() = testApplication {
+        val washerId = ObjectId().toString()
+        val vehiclePlate = "XYZ9999"
+
+        whenever(mockVehicleDataSource.getVehicleByPlate(vehiclePlate, washerId)).thenReturn(null)
+
+        routing {
+            customersRoute.run { customersRoute() }
+        }
+
+        client.get("/customers?${Constants.KEY_WASHER_ID}=$washerId&${Constants.KEY_PLATE}=$vehiclePlate").apply {
+            assertEquals(HttpStatusCode.NotFound, status)
+        }
+    }
+
+    @Test
+    fun `test get customer by vehicle plate - customer not found`() = testApplication {
+        val washerId = ObjectId().toString()
+        val vehiclePlate = "ABC1234"
+        val customerId = ObjectId()
+        val vehicle = Vehicle(
+            model = "Toyota Camry",
+            plate = vehiclePlate,
+            ownerId = customerId,
+            washerId = ObjectId(washerId),
+            isDeleted = false
+        )
+
+        whenever(mockVehicleDataSource.getVehicleByPlate(vehiclePlate, washerId)).thenReturn(vehicle)
+        whenever(mockCustomerDataSource.getCustomerById(customerId.toString())).thenReturn(null)
+
+        routing {
+            customersRoute.run { customersRoute() }
+        }
+
+        client.get("/customers?${Constants.KEY_WASHER_ID}=$washerId&${Constants.KEY_PLATE}=$vehiclePlate").apply {
+            assertEquals(HttpStatusCode.NotFound, status)
+        }
+    }
+
+    @Test
+    fun `test get customer by vehicle plate - missing washer id`() = testApplication {
+        val vehiclePlate = "ABC1234"
+
+        routing {
+            customersRoute.run { customersRoute() }
+        }
+
+        client.get("/customers?${Constants.KEY_PLATE}=$vehiclePlate").apply {
+            assertEquals(HttpStatusCode.BadRequest, status)
+        }
+    }
+
+    @Test
+    fun `test get customer by vehicle plate - invalid washer id`() = testApplication {
+        val vehiclePlate = "ABC1234"
+        val invalidWasherId = "invalid-id"
+
+        routing {
+            customersRoute.run { customersRoute() }
+        }
+
+        client.get("/customers?${Constants.KEY_WASHER_ID}=$invalidWasherId&${Constants.KEY_PLATE}=$vehiclePlate").apply {
+            assertEquals(HttpStatusCode.BadRequest, status)
+        }
+    }
+
+    @Test
+    fun `test get customer by vehicle plate - vehicle belongs to different washer`() = testApplication {
+        val washerId = ObjectId().toString()
+        val differentWasherId = ObjectId().toString()
+        val vehiclePlate = "ABC1234"
+        val customerId = ObjectId()
+        val vehicle = Vehicle(
+            model = "Toyota Camry",
+            plate = vehiclePlate,
+            ownerId = customerId,
+            washerId = ObjectId(differentWasherId), // Different washer
+            isDeleted = false
+        )
+
+        whenever(mockVehicleDataSource.getVehicleByPlate(vehiclePlate, washerId)).thenReturn(vehicle)
+
+        routing {
+            customersRoute.run { customersRoute() }
+        }
+
+        client.get("/customers?${Constants.KEY_WASHER_ID}=$washerId&${Constants.KEY_PLATE}=$vehiclePlate").apply {
+            assertEquals(HttpStatusCode.Forbidden, status)
+        }
+    }
+
+    @Test
+    fun `test get customer by vehicle plate - invalid customer id in vehicle`() = testApplication {
+        val washerId = ObjectId().toString()
+        val vehiclePlate = "ABC1234"
+        val vehicle = Vehicle(
+            model = "Toyota Camry",
+            plate = vehiclePlate,
+            ownerId = null, // Invalid customer ID
+            washerId = ObjectId(washerId),
+            isDeleted = false
+        )
+
+        whenever(mockVehicleDataSource.getVehicleByPlate(vehiclePlate, washerId)).thenReturn(vehicle)
+
+        routing {
+            customersRoute.run { customersRoute() }
+        }
+
+        client.get("/customers?${Constants.KEY_WASHER_ID}=$washerId&${Constants.KEY_PLATE}=$vehiclePlate").apply {
+            assertEquals(HttpStatusCode.BadRequest, status)
+        }
+    }
+
+    @Test
+    fun `test get customer by vehicle plate - customer belongs to different washer`() = testApplication {
+        val washerId = ObjectId().toString()
+        val differentWasherId = ObjectId().toString()
+        val vehiclePlate = "ABC1234"
+        val customerId = ObjectId()
+        val vehicle = Vehicle(
+            model = "Toyota Camry",
+            plate = vehiclePlate,
+            ownerId = customerId,
+            washerId = ObjectId(washerId),
+            isDeleted = false
+        )
+        val customer = Customer(
+            fullName = "John Doe",
+            phoneNumber = "1234567890",
+            washerId = ObjectId(differentWasherId), // Different washer
+            isDeleted = false
+        )
+
+        whenever(mockVehicleDataSource.getVehicleByPlate(vehiclePlate, washerId)).thenReturn(vehicle)
+        whenever(mockCustomerDataSource.getCustomerById(customerId.toString())).thenReturn(customer)
+
+        routing {
+            customersRoute.run { customersRoute() }
+        }
+
+        client.get("/customers?${Constants.KEY_WASHER_ID}=$washerId&${Constants.KEY_PLATE}=$vehiclePlate").apply {
+            assertEquals(HttpStatusCode.Forbidden, status)
+        }
+    }
+
+
 
     @Test
     fun `test get customer by id`() = testApplication {

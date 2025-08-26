@@ -36,6 +36,17 @@ class MongoVehicleDataSource(database: MongoDatabase) : VehicleDataSource {
         return vehiclesCollection.find(query).firstOrNull()
     }
 
+    override suspend fun getVehicleByPlate(plate: String, washerId: String?): Vehicle? {
+        val query = Document().apply {
+            put(Constants.KEY_PLATE, plate)
+            put(Constants.KEY_IS_DELETED, false)
+            if (washerId != null) {
+                put(Constants.KEY_WASHER_ID, ObjectId(washerId))
+            }
+        }
+        return vehiclesCollection.find(query).firstOrNull()
+    }
+
     override suspend fun insertVehicle(vehicle: Vehicle): Boolean {
         return vehiclesCollection.insertOne(vehicle).wasAcknowledged()
     }

@@ -11,6 +11,7 @@ import com.thiagotoazza.data.source.service_type.ServiceTypeDataSource
 import com.thiagotoazza.data.source.user.MongoUserDataSource
 import com.thiagotoazza.data.source.user.UserDataSource
 import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
+import com.thiagotoazza.data.source.vehicle.VehicleDataSource
 import com.thiagotoazza.routes.*
 import com.thiagotoazza.security.hashing.HashingService
 import com.thiagotoazza.security.hashing.SHA256HashingService
@@ -31,7 +32,7 @@ val appModule = module {
     singleOf(::MongoServiceDataSource)
     singleOf(::MongoCustomerDataSource)
     singleOf(::MongoCustomerDataSource) bind CustomerDataSource::class
-    singleOf(::MongoVehicleDataSource)
+    singleOf(::MongoVehicleDataSource) bind VehicleDataSource::class
     singleOf(::MongoServiceTypeDataSource) bind ServiceTypeDataSource::class
 
     single<AuthorizationRoute> { (tokenConfig: TokenConfig) ->
