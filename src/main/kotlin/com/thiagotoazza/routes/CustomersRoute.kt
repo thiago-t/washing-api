@@ -2,7 +2,9 @@ package com.thiagotoazza.routes
 
 import com.thiagotoazza.data.models.customer.Customer
 import com.thiagotoazza.data.models.customer.CustomerRequest
+import com.thiagotoazza.data.models.customer.CustomerWithVehicle
 import com.thiagotoazza.data.models.customer.toCustomerResponse
+import com.thiagotoazza.data.models.vehicles.toVehicleResponse
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
 import com.thiagotoazza.data.source.vehicle.VehicleDataSource
 import com.thiagotoazza.utils.Constants
@@ -26,7 +28,7 @@ class CustomersRoute(
                 val washerId = call.parameters[Constants.KEY_WASHER_ID]
                 val vehiclePlate = call.request.queryParameters[Constants.KEY_VEHICLE_PLATE]
 
-                if (!vehiclePlate.isNullOrBlank()) {
+                if (vehiclePlate?.isNotEmpty() == true) {
                     if (washerId.isNullOrBlank()) {
                         return@get call.respond(
                             HttpStatusCode.BadRequest,
@@ -79,7 +81,10 @@ class CustomersRoute(
                         )
                     }
 
-                    return@get call.respond(HttpStatusCode.OK, customer.toCustomerResponse())
+                    return@get call.respond(
+                        status = HttpStatusCode.OK,
+                        message = CustomerWithVehicle(customer.toCustomerResponse(), vehicle.toVehicleResponse())
+                    )
                 }
 
                 if (washerId?.isNotEmpty() == true) {
