@@ -5,7 +5,7 @@ import com.thiagotoazza.data.models.customer.CustomerRequest
 import com.thiagotoazza.data.models.customer.CustomerWithVehicle
 import com.thiagotoazza.data.models.customer.toCustomerResponse
 import com.thiagotoazza.data.models.vehicles.toVehicleResponse
-import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
+import com.thiagotoazza.data.source.customer.CustomerDataSource
 import com.thiagotoazza.data.source.vehicle.VehicleDataSource
 import com.thiagotoazza.utils.Constants
 import com.thiagotoazza.utils.ResponseError
@@ -18,7 +18,7 @@ import io.ktor.server.routing.*
 import org.bson.types.ObjectId
 
 class CustomersRoute(
-    private val customerDataSource: MongoCustomerDataSource,
+    private val customerDataSource: CustomerDataSource,
     private val vehicleDataSource: VehicleDataSource
 ) {
 
@@ -32,7 +32,10 @@ class CustomersRoute(
                     if (washerId.isNullOrBlank()) {
                         return@get call.respond(
                             HttpStatusCode.BadRequest,
-                            ResponseError(HttpStatusCode.BadRequest.value, "Washer ID is required when searching by vehicle plate")
+                            ResponseError(
+                                HttpStatusCode.BadRequest.value,
+                                "Washer ID is required when searching by vehicle plate"
+                            )
                         )
                     }
 
@@ -54,7 +57,10 @@ class CustomersRoute(
                     if (vehicle.washerId?.toString() != washerId) {
                         return@get call.respond(
                             HttpStatusCode.Forbidden,
-                            ResponseError(HttpStatusCode.Forbidden.value, "Vehicle does not belong to the specified washer")
+                            ResponseError(
+                                HttpStatusCode.Forbidden.value,
+                                "Vehicle does not belong to the specified washer"
+                            )
                         )
                     }
 
@@ -70,14 +76,20 @@ class CustomersRoute(
                     if (customer == null || customer.isDeleted == true) {
                         return@get call.respond(
                             HttpStatusCode.NotFound,
-                            ResponseError(HttpStatusCode.NotFound.value, "Customer not found for vehicle plate: $vehiclePlate")
+                            ResponseError(
+                                HttpStatusCode.NotFound.value,
+                                "Customer not found for vehicle plate: $vehiclePlate"
+                            )
                         )
                     }
 
                     if (customer.washerId?.toString() != washerId) {
                         return@get call.respond(
                             HttpStatusCode.Forbidden,
-                            ResponseError(HttpStatusCode.Forbidden.value, "Customer does not belong to the specified washer")
+                            ResponseError(
+                                HttpStatusCode.Forbidden.value,
+                                "Customer does not belong to the specified washer"
+                            )
                         )
                     }
 
