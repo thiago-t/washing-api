@@ -9,10 +9,7 @@ import com.thiagotoazza.data.models.report.ReportV2
 import com.thiagotoazza.data.models.services.Service
 import com.thiagotoazza.data.models.services.ServiceRequest
 import com.thiagotoazza.data.models.vehicles.Vehicle
-import com.thiagotoazza.utils.Constants
-import com.thiagotoazza.utils.DateFilter
-import com.thiagotoazza.utils.asObjectId
-import com.thiagotoazza.utils.toShortDate
+import com.thiagotoazza.utils.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.firstOrNull
@@ -101,38 +98,51 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
 
     override suspend fun insertService(washerId: String, serviceRequest: ServiceRequest): Boolean {
         try {
-            val insertedCustomerId = coroutineScope {
-                async {
-                    customersCollection.insertOne(serviceRequest.customer.run {
-                        Customer(
-                            fullName = fullName,
-                            phoneNumber = phoneNumber,
-                            isDeleted = false,
-                            washerId = ObjectId(washerId)
-                        )
-                    }).insertedId
-                }.await()
+            val customerId = coroutineScope {
+                if (serviceRequest.vehicle.ownerId.isValidObjectId()) ObjectId(serviceRequest.vehicle.ownerId)
+                else {
+                    async {
+                        customersCollection.insertOne(serviceRequest.customer.run {
+                            Customer(
+                                fullName = fullName,
+                                phoneNumber = phoneNumber,
+                                isDeleted = false,
+                                washerId = ObjectId(washerId)
+                            )
+                        }).insertedId
+                    }
+                        .await()
+                        ?.asObjectId()
+                        ?.value
+                }
             }
 
-            val insertedVehicleId = coroutineScope {
-                async {
-                    vehiclesCollection.insertOne(serviceRequest.vehicle.run {
-                        Vehicle(
-                            model = model,
-                            plate = plate,
-                            ownerId = insertedCustomerId?.asObjectId()?.value,
-                            washerId = ObjectId(washerId)
-                        )
-                    }).insertedId
-                }.await()
+            val vehicleId = coroutineScope {
+                if (serviceRequest.vehicle.id.isValidObjectId()) ObjectId(serviceRequest.vehicle.id)
+                else {
+                    async {
+                        vehiclesCollection.insertOne(serviceRequest.vehicle.run {
+                            Vehicle(
+                                model = model,
+                                plate = plate,
+                                ownerId = customerId,
+                                washerId = ObjectId(washerId)
+                            )
+                        }).insertedId
+                    }
+                        .await()
+                        ?.asObjectId()
+                        ?.value
+                }
             }
 
-            val (customerId, vehicleId) = listOfNotNull(
-                insertedCustomerId?.asObjectId()?.value,
-                insertedVehicleId?.asObjectId()?.value
+            val service = buildService(
+                serviceRequest = serviceRequest,
+                customerId = customerId ?: throw IllegalArgumentException("customerId may not be null"),
+                vehicleId = vehicleId ?: throw IllegalArgumentException("vehicleId may not be null"),
+                washerId = ObjectId(washerId)
             )
 
-            val service = buildService(serviceRequest, customerId, vehicleId, ObjectId(washerId))
             return if (servicesCollection.insertOne(service).wasAcknowledged()) {
                 upsertReport(service)
             } else {
