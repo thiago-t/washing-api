@@ -14,7 +14,6 @@ import com.thiagotoazza.utils.DateFilter
 import com.thiagotoazza.utils.asObjectId
 import com.thiagotoazza.utils.toShortDate
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
@@ -176,12 +175,14 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
     private suspend fun upsertReport(service: Service): Boolean {
         val shortDate = service.date.value.toShortDate()
         val query = Document(Constants.KEY_DATE, shortDate).append(Constants.KEY_WASHER_ID, service.washerId)
-        val reportAdded = reportsCollection.findOneAndUpdate(
-            query,
-            Document(ACTION_PUSH, mapOf(KEY_SERVICES to service.id)),
-            FindOneAndUpdateOptions().upsert(true)
+
+        val result = reportsCollection.updateOne(
+            filter = query,
+            update = Document(ACTION_PUSH, mapOf(KEY_SERVICES to service.id)),
+            options = UpdateOptions().upsert(true)
         )
-        return reportAdded != null
+
+        return result.wasAcknowledged()
     }
 
 }
