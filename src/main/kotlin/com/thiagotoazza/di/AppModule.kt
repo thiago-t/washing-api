@@ -2,6 +2,8 @@ package com.thiagotoazza.di
 
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import com.thiagotoazza.data.WashingDatabase
+import com.thiagotoazza.data.source.company.CompanyDataSource
+import com.thiagotoazza.data.source.company.MongoCompanyDataSource
 import com.thiagotoazza.data.source.customer.CustomerDataSource
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
 import com.thiagotoazza.data.source.report.MongoReportDataSource
@@ -34,6 +36,7 @@ val appModule = module {
     singleOf(::MongoCustomerDataSource) bind CustomerDataSource::class
     singleOf(::MongoVehicleDataSource) bind VehicleDataSource::class
     singleOf(::MongoServiceTypeDataSource) bind ServiceTypeDataSource::class
+    singleOf(::MongoCompanyDataSource) bind CompanyDataSource::class
 
     single<AuthorizationRoute> { (tokenConfig: TokenConfig) ->
         AuthorizationRoute(
@@ -49,4 +52,5 @@ val appModule = module {
     singleOf(::ServicesRoute)
     singleOf(::ReportsRoute)
     singleOf(::ServiceTypeRoute)
+    singleOf(::CompaniesRoute)
 }

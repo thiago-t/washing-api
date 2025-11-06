@@ -19,6 +19,7 @@ fun Application.configureRouting(tokenConfig: TokenConfig) {
         val servicesRoute: ServicesRoute by inject()
         val reportsRoute: ReportsRoute by inject()
         val serviceTypeRoute: ServiceTypeRoute by inject()
+        val companiesRoute: CompaniesRoute by inject()
 
         get("/") {
             call.respondText("Enjoy Washing App!")
@@ -31,9 +32,13 @@ fun Application.configureRouting(tokenConfig: TokenConfig) {
                 authenticate()
                 getSecretInfo()
             }
-            
+
             accountDeletionRoute.run {
                 deleteAccount()
+            }
+
+            companiesRoute.run {
+                companiesRoute()
             }
         }
 
