@@ -2,7 +2,10 @@ package com.thiagotoazza.routes
 
 import com.thiagotoazza.data.models.authorization.AuthRequest
 import com.thiagotoazza.data.models.authorization.AuthResponse
+import com.thiagotoazza.data.models.company.Address
+import com.thiagotoazza.data.models.company.Company
 import com.thiagotoazza.data.models.user.User
+import com.thiagotoazza.data.source.company.CompanyDataSource
 import com.thiagotoazza.data.source.user.UserDataSource
 import com.thiagotoazza.security.hashing.HashingService
 import com.thiagotoazza.security.hashing.SaltedHash
@@ -20,6 +23,7 @@ import io.ktor.server.routing.*
 
 class AuthorizationRoute(
     private val userDataSource: UserDataSource,
+    private val companyDataSource: CompanyDataSource,
     private val hashingService: HashingService,
     private val tokenService: TokenService,
     private val tokenConfig: TokenConfig
@@ -53,25 +57,35 @@ class AuthorizationRoute(
                 return@post
             }
 
-            val saltedHash = hashingService.generateSaltedHash(request.password)
-            val user = User(
-                username = request.username,
-                email = request.email,
-                password = saltedHash.hash,
-                role = request.role,
-                companyIds = listOf(),
-                salt = saltedHash.salt
-            )
-            val wasAcknowledged = userDataSource.insertUser(user)
-            if (wasAcknowledged.not()) {
+            // THE FOLLOWING CODE SNIPPET IS A TEMPORARY SOLUTION TO CREATE A COMPANY FOR NEW USERS
+            val newCompany = buildCompany(userLastName = request.username.split(" ").lastOrNull())
+            if (companyDataSource.insertCompany(company = newCompany)) {
+                val saltedHash = hashingService.generateSaltedHash(request.password)
+                val user = User(
+                    username = request.username,
+                    email = request.email,
+                    password = saltedHash.hash,
+                    role = request.role,
+                    companyIds = listOf(newCompany.id),
+                    salt = saltedHash.salt
+                )
+                val wasAcknowledged = userDataSource.insertUser(user)
+                if (wasAcknowledged.not()) {
+                    call.respond(
+                        HttpStatusCode.Conflict,
+                        ResponseError(HttpStatusCode.Conflict.value, "Something went wrong")
+                    )
+                    return@post
+                }
+
+                call.respond(HttpStatusCode.Created)
+            } else {
                 call.respond(
                     HttpStatusCode.Conflict,
-                    ResponseError(HttpStatusCode.Conflict.value, "Something went wrong")
+                    ResponseError(HttpStatusCode.Conflict.value, "An error occurred while creating user's company")
                 )
                 return@post
             }
-
-            call.respond(HttpStatusCode.Created)
         }
     }
 
@@ -146,6 +160,13 @@ class AuthorizationRoute(
                 call.respond(HttpStatusCode.OK, "Your secret info is $userId")
             }
         }
+    }
+
+    private fun buildCompany(userLastName: String?): Company {
+        return Company(
+            companyName = "$userLastName's Company",
+            address = Address(),
+        )
     }
 
 }
