@@ -165,6 +165,7 @@ class AuthorizationRoute(
     private fun buildCompany(userLastName: String?): Company {
         return Company(
             companyName = "$userLastName's Company",
+            phoneNumber = "",
             address = Address(),
         )
     }
