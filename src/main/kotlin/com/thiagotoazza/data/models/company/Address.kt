@@ -1,11 +1,11 @@
 package com.thiagotoazza.data.models.company
 
 data class Address(
-    val street: String?,
-    val number: String?,
-    val neighborhood: String?,
-    val city: String?,
-    val state: String?,
-    val country: String?,
-    val zipCode: String?,
+    val street: String? = null,
+    val number: String? = null,
+    val neighborhood: String? = null,
+    val city: String? = null,
+    val state: String? = null,
+    val country: String? = null,
+    val zipCode: String? = null,
 )

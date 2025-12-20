@@ -36,7 +36,7 @@ class CompaniesRoute(
                     )
                 }
 
-                return@get call.respond(company)
+                return@get call.respond(company.toCompanyResponse())
             }
 
             post {
@@ -77,13 +77,14 @@ class CompaniesRoute(
                 val updatedCompany = with(request) {
                     Company(
                         id = ObjectId(companyId),
+                        companyName = companyName,
+                        phoneNumber = phoneNumber,
                         address = address,
-                        companyName = companyName
                     )
                 }
 
                 if (companyDataSource.updateCompany(company = updatedCompany)) {
-                    call.respond(HttpStatusCode.OK, updatedCompany)
+                    call.respond(HttpStatusCode.OK, updatedCompany.toCompanyResponse())
                 } else {
                     call.respond(HttpStatusCode.Conflict)
                 }
