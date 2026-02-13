@@ -5,6 +5,7 @@ import com.thiagotoazza.data.models.company.Company
 import com.thiagotoazza.utils.Constants
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
+import org.bson.BsonValue
 import org.bson.Document
 import org.bson.types.ObjectId
 
@@ -21,8 +22,8 @@ class MongoCompanyDataSource(database: MongoDatabase) : CompanyDataSource {
         return companiesCollection.find<Company>(query).firstOrNull()
     }
 
-    override suspend fun insertCompany(company: Company): Boolean {
-        return companiesCollection.insertOne(company).wasAcknowledged()
+    override suspend fun insertCompany(company: Company): BsonValue? {
+        return companiesCollection.insertOne(company).insertedId
     }
 
     override suspend fun updateCompany(company: Company): Boolean {

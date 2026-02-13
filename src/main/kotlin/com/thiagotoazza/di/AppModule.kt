@@ -41,7 +41,6 @@ val appModule = module {
     single<AuthorizationRoute> { (tokenConfig: TokenConfig) ->
         AuthorizationRoute(
             userDataSource = get(),
-            companyDataSource = get(),
             hashingService = get(),
             tokenService = get(),
             tokenConfig = tokenConfig

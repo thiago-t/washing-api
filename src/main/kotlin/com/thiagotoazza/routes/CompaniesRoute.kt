@@ -47,10 +47,15 @@ class CompaniesRoute(
                     )
                 }
 
-                if (companyDataSource.insertCompany(company = request)) {
+                val insertedCompanyId = companyDataSource.insertCompany(company = request)
+                val isValidCompanyId = insertedCompanyId?.isNull?.not()
+                if (isValidCompanyId == true) {
+                    val companyResponse = request
+                        .copy(id = insertedCompanyId.asObjectId().value)
+                        .toCompanyResponse()
                     return@post call.respond(
                         HttpStatusCode.Created,
-                        request
+                        companyResponse
                     )
                 } else {
                     return@post call.respond(HttpStatusCode.Conflict)
@@ -77,6 +82,7 @@ class CompaniesRoute(
                 val updatedCompany = with(request) {
                     Company(
                         id = ObjectId(companyId),
+                        documentNumber = documentNumber,
                         companyName = companyName,
                         phoneNumber = phoneNumber,
                         address = address,
