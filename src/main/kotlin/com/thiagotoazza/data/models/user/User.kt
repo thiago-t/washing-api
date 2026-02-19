@@ -8,7 +8,7 @@ data class User(
     val email: String,
     val password: String,
     val role: String,
-    val companyIds: List<ObjectId>?,
+    val companyIds: List<ObjectId?>?,
     val salt: String,
     @BsonId val id: ObjectId = ObjectId()
 ) {

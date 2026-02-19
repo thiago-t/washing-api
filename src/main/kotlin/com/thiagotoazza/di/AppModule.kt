@@ -46,7 +46,7 @@ val appModule = module {
             tokenConfig = tokenConfig
         )
     }
-    singleOf(::AccountDeletionRoute)
+    singleOf(::UsersRoute)
     singleOf(::CustomersRoute)
     singleOf(::VehiclesRoute)
     singleOf(::ServicesRoute)
