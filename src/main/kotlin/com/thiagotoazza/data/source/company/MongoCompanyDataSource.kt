@@ -1,5 +1,6 @@
 package com.thiagotoazza.data.source.company
 
+import com.mongodb.kotlin.client.coroutine.ClientSession
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import com.thiagotoazza.data.models.company.Company
 import com.thiagotoazza.utils.Constants
@@ -24,6 +25,10 @@ class MongoCompanyDataSource(database: MongoDatabase) : CompanyDataSource {
 
     override suspend fun insertCompany(company: Company): BsonValue? {
         return companiesCollection.insertOne(company).insertedId
+    }
+
+    override suspend fun insertCompany(session: ClientSession, company: Company): BsonValue? {
+        return companiesCollection.insertOne(session, company).insertedId
     }
 
     override suspend fun updateCompany(company: Company): Boolean {
