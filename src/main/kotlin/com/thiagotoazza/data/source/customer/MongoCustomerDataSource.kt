@@ -2,7 +2,9 @@ package com.thiagotoazza.data.source.customer
 
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import com.thiagotoazza.data.models.customer.Customer
+import com.thiagotoazza.utils.ApiResult
 import com.thiagotoazza.utils.Constants
+import com.thiagotoazza.utils.toApiResult
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import org.bson.Document
@@ -28,6 +30,10 @@ class MongoCustomerDataSource(database: MongoDatabase) : CustomerDataSource {
 
     override suspend fun insertCustomer(customer: Customer): Boolean {
         return customersCollection.insertOne(customer).wasAcknowledged()
+    }
+
+    override suspend fun insertCustomerV2(customer: Customer): ApiResult {
+        return customersCollection.insertOne(customer).toApiResult()
     }
 
     override suspend fun updateCustomer(customer: Customer): Boolean {

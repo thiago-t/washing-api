@@ -5,10 +5,7 @@ import com.thiagotoazza.data.models.customer.Customer
 import com.thiagotoazza.data.models.customer.toCustomerResponse
 import com.thiagotoazza.data.models.report.ReportResponse
 import com.thiagotoazza.data.models.report.ReportV2
-import com.thiagotoazza.data.models.services.Service
-import com.thiagotoazza.data.models.services.ServiceRequest
-import com.thiagotoazza.data.models.services.ServiceResponse
-import com.thiagotoazza.data.models.services.toServiceResponse
+import com.thiagotoazza.data.models.services.*
 import com.thiagotoazza.data.models.vehicles.Vehicle
 import com.thiagotoazza.data.models.vehicles.toVehicleResponse
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
@@ -36,7 +33,8 @@ class ServicesRoute(
     private val servicesDataSource: MongoServiceDataSource,
     private val customersDataSource: MongoCustomerDataSource,
     private val vehiclesDataSource: MongoVehicleDataSource,
-    private val serviceTypeDataSource: ServiceTypeDataSource
+    private val serviceTypeDataSource: ServiceTypeDataSource,
+    private val createServiceOrderUseCase: CreateServiceOrderUseCase,
 ) {
 
     fun Route.servicesRoute() {
@@ -100,8 +98,8 @@ class ServicesRoute(
                 val washerId = call.parameters[Constants.KEY_WASHER_ID]
                 val request = call.receive<ServiceRequest>()
 
-                if (servicesDataSource.insertService(washerId.orEmpty(), request)) {
-                    call.respond(HttpStatusCode.OK, request)
+                if (createServiceOrderUseCase.invoke(washerId.orEmpty(), request)) {
+                    call.respond(HttpStatusCode.Created, request)
                 } else {
                     call.respond(HttpStatusCode.Conflict)
                 }
