@@ -21,7 +21,7 @@ class AccountDeletionRouteTest {
 
     private val mockUserDataSource: UserDataSource = mock()
     private val mockHashingService: HashingService = mock()
-    private val accountDeletionRoute = AccountDeletionRoute(
+    private val usersRoute = UsersRoute(
         mockUserDataSource,
         mockHashingService
     )
@@ -43,7 +43,7 @@ class AccountDeletionRouteTest {
         whenever(mockUserDataSource.deleteUser(userId)).thenReturn(true)
 
         routing {
-            accountDeletionRoute.run { deleteAccount() }
+            usersRoute.run { usersRoute() }
         }
 
         client.delete("/delete-account") {
@@ -70,7 +70,7 @@ class AccountDeletionRouteTest {
         whenever(mockHashingService.verifySaltedHash(any(), any())).thenReturn(false)
 
         routing {
-            accountDeletionRoute.run { deleteAccount() }
+            usersRoute.run { usersRoute() }
         }
 
         client.delete("/delete-account") {
@@ -84,7 +84,7 @@ class AccountDeletionRouteTest {
     @Test
     fun `test delete account without password`() = testApplication {
         routing {
-            accountDeletionRoute.run { deleteAccount() }
+            usersRoute.run { usersRoute() }
         }
 
         client.delete("/delete-account") {
@@ -97,7 +97,7 @@ class AccountDeletionRouteTest {
     @Test
     fun `test delete account with empty password`() = testApplication {
         routing {
-            accountDeletionRoute.run { deleteAccount() }
+            usersRoute.run { usersRoute() }
         }
 
         client.delete("/delete-account") {

@@ -41,13 +41,12 @@ val appModule = module {
     single<AuthorizationRoute> { (tokenConfig: TokenConfig) ->
         AuthorizationRoute(
             userDataSource = get(),
-            companyDataSource = get(),
             hashingService = get(),
             tokenService = get(),
             tokenConfig = tokenConfig
         )
     }
-    singleOf(::AccountDeletionRoute)
+    singleOf(::UsersRoute)
     singleOf(::CustomersRoute)
     singleOf(::VehiclesRoute)
     singleOf(::ServicesRoute)

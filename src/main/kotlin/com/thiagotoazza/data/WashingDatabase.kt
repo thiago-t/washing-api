@@ -8,4 +8,6 @@ object WashingDatabase {
         connectionString = "mongodb+srv://toazzat:$mongoPassword@washing.mmghon8.mongodb.net/"
     )
     val database = mongoClient.getDatabase("washing-db")
+
+    suspend fun clientSession() = mongoClient.startSession()
 }
