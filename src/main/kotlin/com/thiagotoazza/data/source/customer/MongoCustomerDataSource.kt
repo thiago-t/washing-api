@@ -1,5 +1,7 @@
 package com.thiagotoazza.data.source.customer
 
+import com.mongodb.client.result.InsertOneResult
+import com.mongodb.kotlin.client.coroutine.ClientSession
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import com.thiagotoazza.data.models.customer.Customer
 import com.thiagotoazza.utils.ApiResult
@@ -32,8 +34,16 @@ class MongoCustomerDataSource(database: MongoDatabase) : CustomerDataSource {
         return customersCollection.insertOne(customer).wasAcknowledged()
     }
 
-    override suspend fun insertCustomerV2(customer: Customer): ApiResult {
-        return customersCollection.insertOne(customer).toApiResult()
+    override suspend fun insertCustomerV2(
+        customer: Customer,
+        session: ClientSession?
+    ): ApiResult {
+        val result = if (session != null) {
+            customersCollection.insertOne(session, customer)
+        } else {
+            customersCollection.insertOne(customer)
+        }
+        return result.toApiResult()
     }
 
     override suspend fun updateCustomer(customer: Customer): Boolean {

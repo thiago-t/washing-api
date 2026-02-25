@@ -1,6 +1,7 @@
 package com.thiagotoazza.data.source.service
 
 import com.mongodb.client.model.*
+import com.mongodb.kotlin.client.coroutine.ClientSession
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import com.thiagotoazza.data.models.report.ReportResponse
 import com.thiagotoazza.data.models.report.ReportV2
@@ -86,8 +87,16 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
         return servicesCollection.find(query).firstOrNull()
     }
 
-    override suspend fun insertService(service: Service): ApiResult {
-        return servicesCollection.insertOne(service).toApiResult()
+    override suspend fun insertService(
+        service: Service,
+        session: ClientSession?
+    ): ApiResult {
+        val result = if (session != null) {
+            servicesCollection.insertOne(session, service)
+        } else {
+            servicesCollection.insertOne(service)
+        }
+        return result.toApiResult()
     }
 
     override suspend fun updateService(service: Service): Boolean {
