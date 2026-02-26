@@ -1,39 +1,30 @@
 package com.thiagotoazza.data.source.service
 
 import com.mongodb.client.model.*
+import com.mongodb.kotlin.client.coroutine.ClientSession
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
-import com.thiagotoazza.data.models.customer.Customer
-import com.thiagotoazza.data.models.report.Report
 import com.thiagotoazza.data.models.report.ReportResponse
 import com.thiagotoazza.data.models.report.ReportV2
 import com.thiagotoazza.data.models.services.Service
-import com.thiagotoazza.data.models.services.ServiceRequest
-import com.thiagotoazza.data.models.vehicles.Vehicle
-import com.thiagotoazza.utils.*
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import com.thiagotoazza.utils.ApiResult
+import com.thiagotoazza.utils.Constants
+import com.thiagotoazza.utils.DateFilter
+import com.thiagotoazza.utils.toApiResult
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
-import org.bson.BsonDateTime
-import org.bson.BsonInvalidOperationException
 import org.bson.Document
 import org.bson.types.ObjectId
 
 class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
 
     companion object {
-        private const val ACTION_PUSH = "\$push"
         private const val ACTION_TO_DATE = "\$toDate"
         private const val ACTION_DATE_TO_STRING = "\$dateToString"
         private const val AGGREGATION_FORMAT = "%Y-%m-%d"
-        private const val KEY_SERVICES = "services"
         private const val KEY_FORMAT = "format"
     }
 
-    private val customersCollection = database.getCollection<Customer>(Constants.KEY_CUSTOMERS_COLLECTION)
-    private val vehiclesCollection = database.getCollection<Vehicle>(Constants.KEY_VEHICLES_COLLECTION)
     private val servicesCollection = database.getCollection<Service>(Constants.KEY_SERVICES_COLLECTION)
-    private val reportsCollection = database.getCollection<Report>(Constants.KEY_REPORTS_COLLECTION)
 
     override suspend fun getServices(): List<Service> {
         return servicesCollection.find().toList()
@@ -96,62 +87,16 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
         return servicesCollection.find(query).firstOrNull()
     }
 
-    override suspend fun insertService(washerId: String, serviceRequest: ServiceRequest): Boolean {
-        try {
-            val customerId = coroutineScope {
-                if (serviceRequest.vehicle.ownerId.isValidObjectId()) ObjectId(serviceRequest.vehicle.ownerId)
-                else {
-                    async {
-                        customersCollection.insertOne(serviceRequest.customer.run {
-                            Customer(
-                                fullName = fullName,
-                                phoneNumber = phoneNumber,
-                                isDeleted = false,
-                                washerId = ObjectId(washerId)
-                            )
-                        }).insertedId
-                    }
-                        .await()
-                        ?.asObjectId()
-                        ?.value
-                }
-            }
-
-            val vehicleId = coroutineScope {
-                if (serviceRequest.vehicle.id.isValidObjectId()) ObjectId(serviceRequest.vehicle.id)
-                else {
-                    async {
-                        vehiclesCollection.insertOne(serviceRequest.vehicle.run {
-                            Vehicle(
-                                model = model,
-                                plate = plate,
-                                ownerId = customerId,
-                                washerId = ObjectId(washerId)
-                            )
-                        }).insertedId
-                    }
-                        .await()
-                        ?.asObjectId()
-                        ?.value
-                }
-            }
-
-            val service = buildService(
-                serviceRequest = serviceRequest,
-                customerId = customerId ?: throw IllegalArgumentException("customerId may not be null"),
-                vehicleId = vehicleId ?: throw IllegalArgumentException("vehicleId may not be null"),
-                washerId = ObjectId(washerId)
-            )
-
-            return if (servicesCollection.insertOne(service).wasAcknowledged()) {
-                upsertReport(service)
-            } else {
-                false
-            }
-        } catch (exception: BsonInvalidOperationException) {
-            println(exception.message)
-            return false
+    override suspend fun insertService(
+        service: Service,
+        session: ClientSession?
+    ): ApiResult {
+        val result = if (session != null) {
+            servicesCollection.insertOne(session, service)
+        } else {
+            servicesCollection.insertOne(service)
         }
+        return result.toApiResult()
     }
 
     override suspend fun updateService(service: Service): Boolean {
@@ -162,37 +107,6 @@ class MongoServiceDataSource(database: MongoDatabase) : ServiceDataSource {
     override suspend fun deleteService(id: String): Boolean {
         val query = Document("_id", ObjectId(id))
         return servicesCollection.deleteOne(query).wasAcknowledged()
-    }
-
-    private fun buildService(
-        serviceRequest: ServiceRequest,
-        customerId: ObjectId,
-        vehicleId: ObjectId,
-        washerId: ObjectId
-    ): Service {
-        return serviceRequest.run {
-            Service(
-                customerId = customerId,
-                vehicleId = vehicleId,
-                washerId = washerId,
-                date = BsonDateTime(date),
-                typeId = typeId.asObjectId(),
-                cost = cost
-            )
-        }
-    }
-
-    private suspend fun upsertReport(service: Service): Boolean {
-        val shortDate = service.date.value.toShortDate()
-        val query = Document(Constants.KEY_DATE, shortDate).append(Constants.KEY_WASHER_ID, service.washerId)
-
-        val result = reportsCollection.updateOne(
-            filter = query,
-            update = Document(ACTION_PUSH, mapOf(KEY_SERVICES to service.id)),
-            options = UpdateOptions().upsert(true)
-        )
-
-        return result.wasAcknowledged()
     }
 
 }

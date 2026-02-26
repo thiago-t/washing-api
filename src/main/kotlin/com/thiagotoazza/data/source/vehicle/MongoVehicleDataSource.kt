@@ -1,8 +1,11 @@
 package com.thiagotoazza.data.source.vehicle
 
+import com.mongodb.kotlin.client.coroutine.ClientSession
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import com.thiagotoazza.data.models.vehicles.Vehicle
+import com.thiagotoazza.utils.ApiResult
 import com.thiagotoazza.utils.Constants
+import com.thiagotoazza.utils.toApiResult
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
 import org.bson.Document
@@ -49,6 +52,15 @@ class MongoVehicleDataSource(database: MongoDatabase) : VehicleDataSource {
 
     override suspend fun insertVehicle(vehicle: Vehicle): Boolean {
         return vehiclesCollection.insertOne(vehicle).wasAcknowledged()
+    }
+
+    override suspend fun insertVehicleV2(vehicle: Vehicle, session: ClientSession?): ApiResult {
+        val result = if (session != null) {
+            vehiclesCollection.insertOne(session, vehicle)
+        } else {
+            vehiclesCollection.insertOne(vehicle)
+        }
+        return result.toApiResult()
     }
 
     override suspend fun updateVehicle(vehicle: Vehicle): Boolean {

@@ -5,10 +5,7 @@ import com.thiagotoazza.data.models.customer.Customer
 import com.thiagotoazza.data.models.customer.toCustomerResponse
 import com.thiagotoazza.data.models.report.ReportResponse
 import com.thiagotoazza.data.models.report.ReportV2
-import com.thiagotoazza.data.models.services.Service
-import com.thiagotoazza.data.models.services.ServiceRequest
-import com.thiagotoazza.data.models.services.ServiceResponse
-import com.thiagotoazza.data.models.services.toServiceResponse
+import com.thiagotoazza.data.models.services.*
 import com.thiagotoazza.data.models.vehicles.Vehicle
 import com.thiagotoazza.data.models.vehicles.toVehicleResponse
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
@@ -36,7 +33,8 @@ class ServicesRoute(
     private val servicesDataSource: MongoServiceDataSource,
     private val customersDataSource: MongoCustomerDataSource,
     private val vehiclesDataSource: MongoVehicleDataSource,
-    private val serviceTypeDataSource: ServiceTypeDataSource
+    private val serviceTypeDataSource: ServiceTypeDataSource,
+    private val createServiceOrderUseCase: CreateServiceOrderUseCase,
 ) {
 
     fun Route.servicesRoute() {
@@ -99,17 +97,29 @@ class ServicesRoute(
             post {
                 val washerId = call.parameters[Constants.KEY_WASHER_ID]
                 val request = call.receive<ServiceRequest>()
+                val createServiceResult = createServiceOrderUseCase.invoke(washerId.orEmpty(), request)
 
-                if (servicesDataSource.insertService(washerId.orEmpty(), request)) {
-                    call.respond(HttpStatusCode.OK, request)
-                } else {
-                    call.respond(HttpStatusCode.Conflict)
+                when (createServiceResult) {
+                    is ApiResult.Success -> {
+                        call.respond(HttpStatusCode.Created, request)
+                    }
+
+                    is ApiResult.Error -> {
+                        call.respond(
+                            status = HttpStatusCode.Conflict,
+                            message = ResponseError(
+                                code = HttpStatusCode.Conflict.value,
+                                message = createServiceResult.message
+                            )
+                        )
+                    }
                 }
             }
 
             put("/{id}") {
                 val washerId = call.parameters[Constants.KEY_WASHER_ID].orEmpty()
-                val serviceId = call.parameters[Constants.KEY_ID] ?: return@put call.respond(HttpStatusCode.BadRequest)
+                val serviceId =
+                    call.parameters[Constants.KEY_ID] ?: return@put call.respond(HttpStatusCode.BadRequest)
                 val service = servicesDataSource.getServicesById(serviceId)
                 val serviceResponse = call.receive<ServiceRequest>().run {
                     async {

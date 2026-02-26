@@ -1,10 +1,11 @@
 package com.thiagotoazza.utils
 
+import com.mongodb.client.result.InsertOneResult
+import org.bson.types.ObjectId
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import org.bson.types.ObjectId
 
 /*
  * Output example: 2000-12-28
@@ -32,5 +33,17 @@ fun String.asObjectId(): ObjectId {
         ObjectId(this)
     } catch (exception: IllegalArgumentException) {
         throw exception
+    }
+}
+
+fun InsertOneResult.toApiResult(): ApiResult {
+    return if (wasAcknowledged()) {
+        ApiResult.Success(
+            insertedId = this.insertedId?.asObjectId()
+        )
+    } else {
+        ApiResult.Error(
+            message = "Error parsing InsertOneResult"
+        )
     }
 }
