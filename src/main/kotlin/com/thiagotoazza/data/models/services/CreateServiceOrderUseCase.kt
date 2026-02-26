@@ -7,6 +7,7 @@ import com.thiagotoazza.data.source.customer.CustomerDataSource
 import com.thiagotoazza.data.source.report.ReportDataSource
 import com.thiagotoazza.data.source.service.ServiceDataSource
 import com.thiagotoazza.data.source.vehicle.VehicleDataSource
+import com.thiagotoazza.utils.ApiResult
 import com.thiagotoazza.utils.asObjectId
 import com.thiagotoazza.utils.isValidObjectId
 import org.bson.BsonDateTime
@@ -18,7 +19,7 @@ class CreateServiceOrderUseCase(
     private val vehicleDataSource: VehicleDataSource,
     private val reportsDataSource: ReportDataSource,
 ) {
-    suspend operator fun invoke(washerId: String, request: ServiceRequest): Boolean {
+    suspend operator fun invoke(washerId: String, request: ServiceRequest): ApiResult {
         val clientSession = WashingDatabase.clientSession()
         clientSession.use { session ->
             return try {
@@ -34,10 +35,16 @@ class CreateServiceOrderUseCase(
                             washerId = ObjectId(washerId)
                         )
                     }
-                    customerDataSource.insertCustomerV2(
+                    val result = customerDataSource.insertCustomerV2(
                         customer = customerData,
                         session = session
-                    ).insertedId ?: throw IllegalStateException("Failed to insert customer")
+                    )
+
+                    if (result is ApiResult.Success) {
+                        result.insertedId?.value ?: throw IllegalStateException("Customer inserted, but ID was null")
+                    } else {
+                        throw IllegalStateException("Failed to insert customer")
+                    }
                 }
 
                 val vehicleId = if (request.vehicle.id.isValidObjectId()) {
@@ -51,10 +58,16 @@ class CreateServiceOrderUseCase(
                             washerId = ObjectId(washerId)
                         )
                     }
-                    vehicleDataSource.insertVehicleV2(
+                    val result = vehicleDataSource.insertVehicleV2(
                         vehicle = vehicleData,
                         session = session
-                    ).insertedId ?: throw IllegalStateException("Failed to insert vehicle")
+                    )
+
+                    if (result is ApiResult.Success) {
+                        result.insertedId?.value ?: throw IllegalStateException("Vehicle inserted, but ID was null")
+                    } else {
+                        throw IllegalStateException("Failed to insert vehicle")
+                    }
                 }
 
                 val service = buildService(
@@ -63,22 +76,23 @@ class CreateServiceOrderUseCase(
                     vehicleId = vehicleId,
                     washerId = ObjectId(washerId)
                 )
-                val serviceCreated = servicesDataSource.insertService(service, session).wasAcknowledged
-                if (serviceCreated.not()) {
+                val serviceCreated = servicesDataSource.insertService(service, session)
+                if (serviceCreated is ApiResult.Error) {
                     throw IllegalStateException("Failed to insert service")
                 }
 
-                val reportsUpdated = reportsDataSource.upsertReport(service).wasAcknowledged
-                if (reportsUpdated.not()) {
+                val reportsUpdated = reportsDataSource.upsertReport(service, session)
+                if (reportsUpdated is ApiResult.Error) {
                     throw IllegalStateException("Failed to update report")
                 }
 
                 clientSession.commitTransaction()
-                true
+
+                return serviceCreated
             } catch (e: Exception) {
                 println(e.message)
                 clientSession.abortTransaction()
-                false
+                ApiResult.Error(message = e.message.orEmpty())
             }
         }
     }

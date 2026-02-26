@@ -54,10 +54,11 @@ class MongoReportDataSource(database: MongoDatabase) : ReportDataSource {
             )
         }
 
-        return ApiResult(
-            wasAcknowledged = result.wasAcknowledged(),
-            insertedId = result.upsertedId?.asObjectId()?.value
-        )
+        return if (result.wasAcknowledged()) {
+            ApiResult.Success(insertedId = result.upsertedId?.asObjectId())
+        } else {
+            ApiResult.Error(message = "")
+        }
     }
 
 }

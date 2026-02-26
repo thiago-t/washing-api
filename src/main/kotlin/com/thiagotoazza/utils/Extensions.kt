@@ -37,8 +37,13 @@ fun String.asObjectId(): ObjectId {
 }
 
 fun InsertOneResult.toApiResult(): ApiResult {
-    return ApiResult(
-        wasAcknowledged = wasAcknowledged(),
-        insertedId = insertedId?.asObjectId()?.value
-    )
+    return if (wasAcknowledged()) {
+        ApiResult.Success(
+            insertedId = this.insertedId?.asObjectId()
+        )
+    } else {
+        ApiResult.Error(
+            message = "Error parsing InsertOneResult"
+        )
+    }
 }
