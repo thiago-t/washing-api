@@ -1,10 +1,7 @@
 package com.thiagotoazza.routes
 
-import com.thiagotoazza.data.models.customer.Customer
-import com.thiagotoazza.data.models.customer.CustomerRequest
-import com.thiagotoazza.data.models.customer.CustomerWithVehicle
-import com.thiagotoazza.data.models.customer.toCustomerResponse
-import com.thiagotoazza.data.models.vehicles.toVehicleResponse
+import com.thiagotoazza.data.models.customer.*
+import com.thiagotoazza.data.models.vehicles.VehicleResponse
 import com.thiagotoazza.data.source.customer.CustomerDataSource
 import com.thiagotoazza.data.source.vehicle.VehicleDataSource
 import com.thiagotoazza.utils.Constants
@@ -28,7 +25,16 @@ class CustomersRoute(
                 val washerId = call.parameters[Constants.KEY_WASHER_ID]
                 val vehiclePlate = call.request.queryParameters[Constants.KEY_VEHICLE_PLATE]
 
+                @Deprecated("This is not required anymore since users select customer and vehicle through frontend")
                 if (vehiclePlate?.isNotEmpty() == true) {
+                    val dummyCustomer = CustomerResponse(id = "", fullName = "", phoneNumber = "")
+                    val dummyVehicle =
+                        VehicleResponse(id = "", model = "", plate = "", ownerId = "", isDeleted = null, washerId = "")
+                    return@get call.respond(
+                        status = HttpStatusCode.OK,
+                        message = CustomerWithVehicle(dummyCustomer, dummyVehicle)
+                    )
+
                     if (washerId.isNullOrBlank()) {
                         return@get call.respond(
                             HttpStatusCode.BadRequest,
@@ -92,11 +98,6 @@ class CustomersRoute(
                             )
                         )
                     }
-
-                    return@get call.respond(
-                        status = HttpStatusCode.OK,
-                        message = CustomerWithVehicle(customer.toCustomerResponse(), vehicle.toVehicleResponse())
-                    )
                 }
 
                 if (washerId?.isNotEmpty() == true) {
