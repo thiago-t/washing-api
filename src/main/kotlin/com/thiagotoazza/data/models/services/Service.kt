@@ -15,6 +15,8 @@ data class Service(
     val date: BsonDateTime,
     val cost: Int,
     val shortDate: String? = null,
+    val paymentMethod: PaymentMethod? = null,
+    val paymentMethodDescription: String? = null,
     @BsonId val id: ObjectId = ObjectId(),
 )
 
@@ -26,5 +28,7 @@ fun Service.toServiceResponse(customer: CustomerResponse, vehicle: VehicleRespon
     date = date.value.toString(),
     typeId = typeId.toString(),
     typeName = typeName,
-    cost = cost.asDecimalString()
+    cost = cost.asDecimalString(),
+    paymentMethod = paymentMethod?.name,
+    paymentMethodDescription = paymentMethodDescription
 )

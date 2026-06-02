@@ -110,7 +110,9 @@ class CreateServiceOrderUseCase(
                 washerId = washerId,
                 date = BsonDateTime(date),
                 typeId = typeId.asObjectId(),
-                cost = cost
+                cost = cost,
+                paymentMethod = paymentMethod,
+                paymentMethodDescription = paymentMethodDescription
             )
         }
     }

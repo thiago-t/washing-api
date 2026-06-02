@@ -143,7 +143,9 @@ class ServicesRoute(
 
                         val toUpdateService = service?.copy(
                             typeId = typeId.asObjectId(),
-                            cost = cost
+                            cost = cost,
+                            paymentMethod = paymentMethod,
+                            paymentMethodDescription = paymentMethodDescription
                         )
                         toUpdateService?.let { service ->
                             servicesDataSource.updateService(service)

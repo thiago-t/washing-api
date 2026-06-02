@@ -11,5 +11,7 @@ data class ServiceResponse(
     val date: String,
     val typeId: String,
     val typeName: String,
-    val cost: String
+    val cost: String,
+    val paymentMethod: String? = null,
+    val paymentMethodDescription: String? = null
 )
