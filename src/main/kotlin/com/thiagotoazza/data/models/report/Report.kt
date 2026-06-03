@@ -16,8 +16,8 @@ fun Report.toReportResponse(services: List<ServiceResponse?>): ReportResponse {
         date = date,
         totalCustomers = services.size,
         totalRevenue = services.run {
-            var total = 0.0
-            this.forEach { total += it?.cost?.toDecimal() ?: 0.0 }
+            var total = 0
+            this.forEach { total += it?.cost?.toIntOrNull() ?: 0 }
             total
         },
         services = services

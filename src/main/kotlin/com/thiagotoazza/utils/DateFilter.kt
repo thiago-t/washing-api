@@ -25,4 +25,9 @@ sealed class DateFilter {
         override val endDate: Instant = LocalDate.of(year, 12, 31).atTime(23, 59, 59).toInstant(ZoneOffset.UTC)
     }
 
+    class CustomRange(
+        override val startDate: Instant,
+        override val endDate: Instant
+    ) : DateFilter()
+
 }

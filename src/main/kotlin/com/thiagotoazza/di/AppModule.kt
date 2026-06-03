@@ -56,6 +56,7 @@ val appModule = module {
     singleOf(::ReportsRoute)
     singleOf(::ServiceTypeRoute)
     singleOf(::CompaniesRoute)
+    singleOf(::DashboardRoute)
 
     singleOf(::CreateServiceOrderUseCase)
 }

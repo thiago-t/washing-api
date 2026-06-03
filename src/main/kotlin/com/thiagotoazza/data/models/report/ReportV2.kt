@@ -5,6 +5,6 @@ import com.thiagotoazza.data.models.services.Service
 data class ReportV2(
     val date: String,
     val totalCustomers: Int,
-    val totalRevenue: Double,
+    val totalRevenue: Int,
     val services: List<Service>
 )

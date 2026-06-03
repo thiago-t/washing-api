@@ -6,6 +6,6 @@ data class ReportResponse(
     val id: String = "",
     val date: String,
     val totalCustomers: Int,
-    val totalRevenue: Double,
+    val totalRevenue: Int,
     val services: List<ServiceResponse?>
 )
