@@ -9,4 +9,6 @@ data class ServiceRequest(
     val date: Long,
     val typeId: String,
     val cost: Int,
+    val paymentMethod: PaymentMethod? = null,
+    val paymentMethodDescription: String? = null,
 )
