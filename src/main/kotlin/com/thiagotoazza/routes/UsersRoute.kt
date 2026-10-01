@@ -2,6 +2,7 @@ package com.thiagotoazza.routes
 
 import com.mongodb.client.model.Updates
 import com.thiagotoazza.data.models.accountdeletion.AccountDeletionRequest
+import com.thiagotoazza.data.models.user.EmployeeErrorCode
 import com.thiagotoazza.data.models.user.UpdateUserRequest
 import com.thiagotoazza.data.models.user.User
 import com.thiagotoazza.data.source.user.UserDataSource
@@ -35,7 +36,10 @@ class UsersRoute(
                     if (userId == null) {
                         call.respond(
                             HttpStatusCode.Unauthorized,
-                            ResponseError(HttpStatusCode.Unauthorized.value, "User not authenticated")
+                            ResponseError(
+                                HttpStatusCode.Unauthorized.value,
+                                EmployeeErrorCode.USER_NOT_AUTHENTICATED.name
+                            )
                         )
                         return@delete
                     }
@@ -97,6 +101,305 @@ class UsersRoute(
                         HttpStatusCode.OK,
                         mapOf("message" to "Account deleted successfully")
                     )
+                }
+
+                get("/employees") {
+                    val principal = call.principal<JWTPrincipal>()
+                    val managerId = principal?.getClaim("userId", String::class)
+
+                    if (managerId == null) {
+                        call.respond(
+                            HttpStatusCode.Unauthorized,
+                            ResponseError(
+                                HttpStatusCode.Unauthorized.value,
+                                EmployeeErrorCode.USER_NOT_AUTHENTICATED.name
+                            )
+                        )
+                        return@get
+                    }
+
+                    val manager = userDataSource.getUserById(managerId)
+                    if (manager == null) {
+                        call.respond(
+                            HttpStatusCode.NotFound,
+                            ResponseError(HttpStatusCode.NotFound.value, EmployeeErrorCode.MANAGER_NOT_FOUND.name)
+                        )
+                        return@get
+                    }
+
+                    val companyId = manager.companyIds?.firstOrNull()
+                    if (companyId == null) {
+                        call.respond(
+                            HttpStatusCode.BadRequest,
+                            ResponseError(HttpStatusCode.BadRequest.value, EmployeeErrorCode.COMPANY_NOT_SETUP.name)
+                        )
+                        return@get
+                    }
+
+                    val employees = userDataSource.getUsersByCompanyId(companyId.toString())
+                    // Filter out the manager from the list if we only want employees, or return all team members
+                    // For now, return all users in the company except the requester (if they just want to see employees)
+                    // Let's return all users in the company for "Team Management"
+                    val team = employees.map { it.toUserResponse() }
+                    call.respond(HttpStatusCode.OK, team)
+                }
+
+                get("/employee/{id}") {
+                    val principal = call.principal<JWTPrincipal>()
+                    val managerId = principal?.getClaim("userId", String::class)
+
+                    if (managerId == null) {
+                        call.respond(
+                            HttpStatusCode.Unauthorized,
+                            ResponseError(
+                                HttpStatusCode.Unauthorized.value,
+                                EmployeeErrorCode.USER_NOT_AUTHENTICATED.name
+                            )
+                        )
+                        return@get
+                    }
+
+                    val manager = userDataSource.getUserById(managerId)
+                    val companyId = manager?.companyIds?.firstOrNull()?.toString()
+
+                    val employeeId = call.parameters["id"] ?: return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, EmployeeErrorCode.MISSING_EMPLOYEE_ID.name)
+                    )
+
+                    val employee = userDataSource.getUserById(employeeId)
+                    if (employee == null || employee.companyIds?.firstOrNull()?.toString() != companyId) {
+                        call.respond(
+                            HttpStatusCode.NotFound,
+                            ResponseError(HttpStatusCode.NotFound.value, EmployeeErrorCode.EMPLOYEE_NOT_FOUND.name)
+                        )
+                        return@get
+                    }
+
+                    call.respond(HttpStatusCode.OK, employee.toUserResponse())
+                }
+
+                delete("/employee/{id}") {
+                    val principal = call.principal<JWTPrincipal>()
+                    val managerId = principal?.getClaim("userId", String::class)
+
+                    if (managerId == null) {
+                        call.respond(
+                            HttpStatusCode.Unauthorized,
+                            ResponseError(
+                                HttpStatusCode.Unauthorized.value,
+                                EmployeeErrorCode.USER_NOT_AUTHENTICATED.name
+                            )
+                        )
+                        return@delete
+                    }
+
+                    val manager = userDataSource.getUserById(managerId)
+                    val companyId = manager?.companyIds?.firstOrNull()?.toString()
+
+                    val employeeId = call.parameters["id"] ?: return@delete call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, EmployeeErrorCode.MISSING_EMPLOYEE_ID.name)
+                    )
+
+                    val employee = userDataSource.getUserById(employeeId)
+                    if (employee == null || employee.companyIds?.firstOrNull()?.toString() != companyId) {
+                        call.respond(
+                            HttpStatusCode.Forbidden,
+                            ResponseError(HttpStatusCode.Forbidden.value, EmployeeErrorCode.UNAUTHORIZED_DELETE.name)
+                        )
+                        return@delete
+                    }
+                    if (employee.id.toString() == managerId) {
+                        call.respond(
+                            HttpStatusCode.Forbidden,
+                            ResponseError(HttpStatusCode.Forbidden.value, EmployeeErrorCode.CANNOT_DELETE_SELF.name)
+                        )
+                        return@delete
+                    }
+
+                    val deleted = userDataSource.deleteUser(employeeId)
+                    if (deleted) {
+                        call.respond(HttpStatusCode.OK, mapOf("message" to "Employee deleted successfully"))
+                    } else {
+                        call.respond(
+                            HttpStatusCode.InternalServerError,
+                            ResponseError(
+                                HttpStatusCode.InternalServerError.value,
+                                EmployeeErrorCode.FAILED_TO_DELETE.name
+                            )
+                        )
+                    }
+                }
+
+                put("/employee/{id}") {
+                    val principal = call.principal<JWTPrincipal>()
+                    val managerId = principal?.getClaim("userId", String::class)
+
+                    if (managerId == null) {
+                        call.respond(
+                            HttpStatusCode.Unauthorized,
+                            ResponseError(
+                                HttpStatusCode.Unauthorized.value,
+                                EmployeeErrorCode.USER_NOT_AUTHENTICATED.name
+                            )
+                        )
+                        return@put
+                    }
+
+                    val manager = userDataSource.getUserById(managerId)
+                    val companyId = manager?.companyIds?.firstOrNull()?.toString()
+
+                    val employeeId = call.parameters["id"] ?: return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, EmployeeErrorCode.MISSING_EMPLOYEE_ID.name)
+                    )
+
+                    val request = call.receiveNullable<com.thiagotoazza.data.models.user.UpdateEmployeeRequest>()
+                        ?: return@put call.respond(
+                            HttpStatusCode.BadRequest,
+                            ResponseError(HttpStatusCode.BadRequest.value, EmployeeErrorCode.INVALID_REQUEST_BODY.name)
+                        )
+
+                    val employee = userDataSource.getUserById(employeeId)
+                    if (employee == null || employee.companyIds?.firstOrNull()?.toString() != companyId) {
+                        call.respond(
+                            HttpStatusCode.Forbidden,
+                            ResponseError(HttpStatusCode.Forbidden.value, EmployeeErrorCode.UNAUTHORIZED_UPDATE.name)
+                        )
+                        return@put
+                    }
+
+                    if (request.email != null && request.email != employee.email) {
+                        val existingUser = userDataSource.getUserByEmail(request.email)
+                        if (existingUser != null) {
+                            call.respond(
+                                io.ktor.http.HttpStatusCode.Conflict,
+                                com.thiagotoazza.utils.ResponseError(
+                                    io.ktor.http.HttpStatusCode.Conflict.value,
+                                    EmployeeErrorCode.EMAIL_ALREADY_EXISTS.name
+                                )
+                            )
+                            return@put
+                        }
+                    }
+
+                    val updates = mutableListOf<org.bson.conversions.Bson>()
+                    if (request.username != null) updates.add(
+                        com.mongodb.client.model.Updates.set(
+                            com.thiagotoazza.data.models.user.User::username.name,
+                            request.username
+                        )
+                    )
+                    if (request.email != null) updates.add(
+                        com.mongodb.client.model.Updates.set(
+                            com.thiagotoazza.data.models.user.User::email.name,
+                            request.email
+                        )
+                    )
+
+                    if (updates.isEmpty()) {
+                        call.respond(HttpStatusCode.OK, employee.toUserResponse())
+                        return@put
+                    }
+
+                    val updatedUser = userDataSource.patchUser(employeeId, updates)
+                    if (updatedUser != null) {
+                        call.respond(HttpStatusCode.OK, updatedUser.toUserResponse())
+                    } else {
+                        call.respond(
+                            HttpStatusCode.InternalServerError,
+                            ResponseError(
+                                HttpStatusCode.InternalServerError.value,
+                                EmployeeErrorCode.FAILED_TO_UPDATE.name
+                            )
+                        )
+                    }
+                }
+
+                post("/employee") {
+                    val principal = call.principal<JWTPrincipal>()
+                    val managerId = principal?.getClaim("userId", String::class)
+
+                    if (managerId == null) {
+                        call.respond(
+                            HttpStatusCode.Unauthorized,
+                            ResponseError(
+                                HttpStatusCode.Unauthorized.value,
+                                EmployeeErrorCode.USER_NOT_AUTHENTICATED.name
+                            )
+                        )
+                        return@post
+                    }
+
+                    val manager = userDataSource.getUserById(managerId)
+                    if (manager == null) {
+                        call.respond(
+                            HttpStatusCode.NotFound,
+                            ResponseError(HttpStatusCode.NotFound.value, EmployeeErrorCode.MANAGER_NOT_FOUND.name)
+                        )
+                        return@post
+                    }
+
+                    val companyId = manager.companyIds?.firstOrNull()
+                    if (companyId == null) {
+                        call.respond(
+                            HttpStatusCode.BadRequest,
+                            ResponseError(HttpStatusCode.BadRequest.value, EmployeeErrorCode.COMPANY_NOT_SETUP.name)
+                        )
+                        return@post
+                    }
+
+                    // Enforce plan limits (Mocking Free plan = 1 User limit)
+                    val userCount = userDataSource.countUsersByCompanyId(companyId.toString())
+                    val maxUsersAllowed = 2 // Simulating the Free Plan limit where only the Manager is allowed
+                    if (userCount >= maxUsersAllowed) {
+                        call.respond(
+                            HttpStatusCode.Forbidden,
+                            ResponseError(HttpStatusCode.Forbidden.value, EmployeeErrorCode.LIMIT_REACHED.name)
+                        )
+                        return@post
+                    }
+
+                    val request = call.receiveNullable<com.thiagotoazza.data.models.user.EmployeeRequest>() ?: run {
+                        call.respond(
+                            HttpStatusCode.BadRequest,
+                            ResponseError(HttpStatusCode.BadRequest.value, EmployeeErrorCode.INVALID_REQUEST_BODY.name)
+                        )
+                        return@post
+                    }
+
+                    val existingUser = userDataSource.getUserByEmail(request.email)
+                    if (existingUser != null) {
+                        call.respond(
+                            HttpStatusCode.Conflict,
+                            ResponseError(HttpStatusCode.Conflict.value, EmployeeErrorCode.EMAIL_ALREADY_EXISTS.name)
+                        )
+                        return@post
+                    }
+
+                    val saltedHash = hashingService.generateSaltedHash(request.password)
+                    val employeeUser = User(
+                        username = request.username,
+                        email = request.email,
+                        password = saltedHash.hash,
+                        role = com.thiagotoazza.utils.Constants.ROLE_EMPLOYEE,
+                        companyIds = listOf(companyId),
+                        salt = saltedHash.salt
+                    )
+
+                    val inserted = userDataSource.insertUser(employeeUser)
+                    if (inserted) {
+                        call.respond(HttpStatusCode.Created, employeeUser.toUserResponse())
+                    } else {
+                        call.respond(
+                            HttpStatusCode.InternalServerError,
+                            ResponseError(
+                                HttpStatusCode.InternalServerError.value,
+                                EmployeeErrorCode.FAILED_TO_CREATE.name
+                            )
+                        )
+                    }
                 }
             }
 

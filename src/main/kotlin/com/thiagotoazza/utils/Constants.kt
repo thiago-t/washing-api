@@ -14,4 +14,7 @@ object Constants {
     const val KEY_SERVICE_TYPE_COLLECTION = "service_type"
     const val KEY_COMPANIES_COLLECTION = "washers"
     const val KEY_IS_DELETED = "isDeleted"
+
+    const val ROLE_MANAGER = "MANAGER"
+    const val ROLE_EMPLOYEE = "EMPLOYEE"
 }
