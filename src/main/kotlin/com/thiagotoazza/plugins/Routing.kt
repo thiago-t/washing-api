@@ -19,6 +19,7 @@ fun Application.configureRouting(tokenConfig: TokenConfig) {
         val servicesRoute: ServicesRoute by inject()
         val reportsRoute: ReportsRoute by inject()
         val serviceTypeRoute: ServiceTypeRoute by inject()
+        val expensesRoute: ExpensesRoute by inject()
         val companiesRoute: CompaniesRoute by inject()
 
         get("/") {
@@ -48,6 +49,7 @@ fun Application.configureRouting(tokenConfig: TokenConfig) {
             servicesRoute.run { servicesRoute() }
             reportsRoute.run { reportsRoute() }
             serviceTypeRoute.run { serviceTypeRoute() }
+            expensesRoute.run { expensesRoute() }
         }
     }
 }
