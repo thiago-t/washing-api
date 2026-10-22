@@ -2,8 +2,10 @@ package com.thiagotoazza.utils
 
 import java.time.Instant
 import java.time.LocalDate
-import java.time.YearMonth as YMonth
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.Year as JYear
+import java.time.YearMonth as YMonth
 
 sealed class DateFilter {
     abstract val startDate: Instant
@@ -23,6 +25,27 @@ sealed class DateFilter {
     class Year(year: Int) : DateFilter() {
         override val startDate: Instant = LocalDate.of(year, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant()
         override val endDate: Instant = LocalDate.of(year, 12, 31).atTime(23, 59, 59).toInstant(ZoneOffset.UTC)
+    }
+
+    companion object {
+        fun parse(dateQueryParam: String): DateFilter {
+            return when (dateQueryParam.count { it == '-' }) {
+                2 -> {
+                    val date = LocalDate.parse(dateQueryParam, DateTimeFormatter.ISO_LOCAL_DATE)
+                    FullDate(date.year, date.monthValue, date.dayOfMonth)
+                }
+
+                1 -> {
+                    val yearMonth = YMonth.parse(dateQueryParam, DateTimeFormatter.ofPattern("yyyy-MM"))
+                    YearMonth(yearMonth.year, yearMonth.monthValue)
+                }
+
+                else -> {
+                    val year = JYear.parse(dateQueryParam, DateTimeFormatter.ofPattern("yyyy"))
+                    Year(year.value)
+                }
+            }
+        }
     }
 
 }

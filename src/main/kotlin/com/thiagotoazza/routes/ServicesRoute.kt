@@ -23,10 +23,6 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.bson.types.ObjectId
-import java.time.LocalDate
-import java.time.Year
-import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
 class ServicesRoute(
@@ -55,22 +51,7 @@ class ServicesRoute(
                     call.respond(HttpStatusCode.OK, services)
                 } else {
                     val dateFilter = try {
-                        when (dateQueryParam.count { it == '-' }) {
-                            2 -> {
-                                val date = LocalDate.parse(dateQueryParam, DateTimeFormatter.ISO_LOCAL_DATE)
-                                DateFilter.FullDate(date.year, date.monthValue, date.dayOfMonth)
-                            }
-
-                            1 -> {
-                                val yearMonth = YearMonth.parse(dateQueryParam, DateTimeFormatter.ofPattern("yyyy-MM"))
-                                DateFilter.YearMonth(yearMonth.year, yearMonth.monthValue)
-                            }
-
-                            else -> {
-                                val year = Year.parse(dateQueryParam, DateTimeFormatter.ofPattern("yyyy"))
-                                DateFilter.Year(year.value)
-                            }
-                        }
+                        DateFilter.parse(dateQueryParam)
                     } catch (e: DateTimeParseException) {
                         return@get call.respond(
                             HttpStatusCode.BadRequest,
