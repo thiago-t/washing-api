@@ -1,6 +1,7 @@
 package com.thiagotoazza.routes
 
 import com.thiagotoazza.data.models.expenses.Expense
+import com.thiagotoazza.data.models.expenses.ExpenseDeleteMode
 import com.thiagotoazza.data.models.expenses.ExpenseRequest
 import com.thiagotoazza.data.models.expenses.toExpenseResponse
 import com.thiagotoazza.data.source.expense.ExpenseDataSource
@@ -12,6 +13,9 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.bson.BsonDateTime
 import org.bson.types.ObjectId
+import java.time.Instant
+import java.time.YearMonth
+import java.time.ZoneOffset
 import java.time.format.DateTimeParseException
 
 class ExpensesRoute(
@@ -32,6 +36,7 @@ class ExpensesRoute(
                 }
 
                 val expenses = if (dateQueryParam.isBlank()) {
+                    expenseDataSource.materializeRecurringExpenses(washerId, YearMonth.now(ZoneOffset.UTC))
                     expenseDataSource.getExpenses(washerId)
                 } else {
                     val dateFilter = try {
@@ -42,6 +47,17 @@ class ExpensesRoute(
                             ResponseError(HttpStatusCode.BadRequest.value, "Invalid expense date")
                         )
                     }
+
+                    val targetYearMonth = when (dateFilter) {
+                        is DateFilter.YearMonth -> YearMonth.of(dateFilter.year, dateFilter.month)
+                        is DateFilter.FullDate -> {
+                            val local = dateFilter.startDate.atZone(ZoneOffset.UTC)
+                            YearMonth.of(local.year, local.monthValue)
+                        }
+
+                        is DateFilter.Year -> YearMonth.now(ZoneOffset.UTC)
+                    }
+                    expenseDataSource.materializeRecurringExpenses(washerId, targetYearMonth)
                     expenseDataSource.getExpensesByDate(washerId, dateFilter)
                 }
 
@@ -74,6 +90,14 @@ class ExpensesRoute(
                 }
 
                 val request = call.receive<ExpenseRequest>()
+                val recurringGroupId = if (request.isRecurringMonthly) {
+                    if (request.recurringGroupId.isNullOrBlank()) ObjectId() else ObjectId(request.recurringGroupId)
+                } else null
+
+                val recurrenceDayOfMonth = if (request.isRecurringMonthly) {
+                    Instant.ofEpochMilli(request.dueDate).atZone(ZoneOffset.UTC).dayOfMonth
+                } else null
+
                 val expense = Expense(
                     washerId = ObjectId(washerId),
                     amount = request.amount,
@@ -81,6 +105,8 @@ class ExpensesRoute(
                     isPaidToday = request.isPaidToday,
                     dueDate = BsonDateTime(request.dueDate),
                     isRecurringMonthly = request.isRecurringMonthly,
+                    recurringGroupId = recurringGroupId,
+                    recurrenceDayOfMonth = recurrenceDayOfMonth,
                     description = request.description
                 )
 
@@ -114,6 +140,20 @@ class ExpensesRoute(
                 }
 
                 val request = call.receive<ExpenseRequest>()
+                val existing = expenseDataSource.getExpenseById(expenseId)
+
+                val recurringGroupId = if (request.isRecurringMonthly) {
+                    when {
+                        !request.recurringGroupId.isNullOrBlank() -> ObjectId(request.recurringGroupId)
+                        existing?.recurringGroupId != null -> existing.recurringGroupId
+                        else -> ObjectId()
+                    }
+                } else null
+
+                val recurrenceDayOfMonth = if (request.isRecurringMonthly) {
+                    Instant.ofEpochMilli(request.dueDate).atZone(ZoneOffset.UTC).dayOfMonth
+                } else null
+
                 val updatedExpense = Expense(
                     id = ObjectId(expenseId),
                     washerId = ObjectId(washerId),
@@ -122,6 +162,9 @@ class ExpensesRoute(
                     isPaidToday = request.isPaidToday,
                     dueDate = BsonDateTime(request.dueDate),
                     isRecurringMonthly = request.isRecurringMonthly,
+                    recurringGroupId = recurringGroupId,
+                    recurrenceDayOfMonth = recurrenceDayOfMonth,
+                    recurrenceEndDate = existing?.recurrenceEndDate,
                     description = request.description
                 )
 
@@ -136,13 +179,18 @@ class ExpensesRoute(
             }
 
             delete("/{id}") {
+                val washerId = call.parameters[Constants.KEY_WASHER_ID].orEmpty()
                 val expenseId = call.parameters[Constants.KEY_ID]
                     ?: return@delete call.respond(HttpStatusCode.BadRequest)
-                if (!expenseId.isValidObjectId()) {
+
+                if (!washerId.isValidObjectId() || !expenseId.isValidObjectId()) {
                     return@delete call.respond(HttpStatusCode.BadRequest)
                 }
 
-                if (expenseDataSource.deleteExpense(expenseId)) {
+                val modeParam = call.request.queryParameters["mode"]
+                val mode = ExpenseDeleteMode.fromString(modeParam)
+
+                if (expenseDataSource.deleteExpenseWithMode(washerId, expenseId, mode)) {
                     call.respond(HttpStatusCode.OK)
                 } else {
                     call.respond(HttpStatusCode.Conflict)
