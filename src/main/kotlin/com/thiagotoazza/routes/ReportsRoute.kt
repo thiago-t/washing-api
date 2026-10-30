@@ -8,12 +8,15 @@ import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
 import com.thiagotoazza.data.source.report.MongoReportDataSource
 import com.thiagotoazza.data.source.service.MongoServiceDataSource
 import com.thiagotoazza.data.source.service_type.MongoServiceTypeDataSource
+import com.thiagotoazza.data.source.user.UserDataSource
 import com.thiagotoazza.data.source.vehicle.MongoVehicleDataSource
 import com.thiagotoazza.utils.Constants
 import com.thiagotoazza.utils.ResponseError
 import com.thiagotoazza.utils.isValidObjectId
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
@@ -22,79 +25,103 @@ class ReportsRoute(
     private val servicesDataSource: MongoServiceDataSource,
     private val customersDataSource: MongoCustomerDataSource,
     private val vehiclesDataSource: MongoVehicleDataSource,
-    private val serviceTypeDataSource: MongoServiceTypeDataSource
+    private val serviceTypeDataSource: MongoServiceTypeDataSource,
+    private val userDataSource: UserDataSource
 ) {
 
     fun Route.reportsRoute() {
-        route("/reports") {
-            get {
-                val washerId = call.parameters[Constants.KEY_WASHER_ID]
-                val date = call.request.queryParameters[Constants.KEY_DATE]
+        authenticate {
+            route("/reports") {
+                get {
+                    val principal = call.principal<JWTPrincipal>()
+                    val userId = principal?.getClaim("userId", String::class)
 
-                if (washerId.isValidObjectId().not()) {
-                    return@get call.respond(
-                        HttpStatusCode.BadRequest,
-                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
-                    )
-                }
-
-                if (date == null) return@get call.respond(
-                    HttpStatusCode.BadRequest,
-                    ResponseError(HttpStatusCode.BadRequest.value, "Invalid date")
-                )
-
-                val shortDate = date.split("-")
-                val reports = reportsDataSource.getReportsBy(washerId, shortDate[0], shortDate[1])?.map { report ->
-                    val services = report.services.map { serviceId ->
-                        servicesDataSource.getServicesById(serviceId.toString())?.let { service ->
-                            val customer = customersDataSource
-                                .getCustomerById(service.customerId.toString())
-                                ?.toCustomerResponse()
-                                ?: return@get call.respond(
-                                    HttpStatusCode.Conflict,
-                                    ResponseError(
-                                        HttpStatusCode.Conflict.value,
-                                        "Error getting customer id ${service.customerId}"
-                                    )
-                                )
-                            val vehicle =
-                                vehiclesDataSource
-                                    .getVehicleById(service.vehicleId.toString())
-                                    ?.toVehicleResponse()
-                                    ?: return@get call.respond(
-                                        HttpStatusCode.Conflict,
-                                        ResponseError(
-                                            HttpStatusCode.Conflict.value,
-                                            "Error getting vehicle id ${service.vehicleId}"
-                                        )
-                                    )
-                            val serviceType =
-                                serviceTypeDataSource
-                                    .getServiceTypeById(washerId = washerId, serviceTypeId = service.typeId.toString())
-                                    ?.toServiceTypeResponse()
-                                    ?: return@get call.respond(
-                                        HttpStatusCode.Conflict,
-                                        ResponseError(
-                                            HttpStatusCode.Conflict.value,
-                                            "Error getting service type ${service.typeId}"
-                                        )
-                                    )
-                            service.toServiceResponse(customer, vehicle, serviceType.name)
-                        }
+                    if (userId == null) {
+                        return@get call.respond(
+                            HttpStatusCode.Unauthorized,
+                            ResponseError(HttpStatusCode.Unauthorized.value, "User not authenticated")
+                        )
                     }
 
-                    // TEMPORARY CODE TO CLEAR NULL SERVICES
-                    val nonNullServices = services.filterNotNull()
-                    report.toReportResponse(nonNullServices)
-                }?.filter { it.totalCustomers >= 1 }
-                reports?.let {
-                    val sortedReports = it.sortedWith(compareByDescending { it.date })
-                    call.respond(HttpStatusCode.OK, sortedReports)
-                } ?: run {
-                    call.respond(
-                        HttpStatusCode.Conflict,
-                        ResponseError(HttpStatusCode.Conflict.value, "Error getting report")
+                    val user = userDataSource.getUserById(userId)
+                    if (user?.role == com.thiagotoazza.utils.Constants.ROLE_EMPLOYEE) {
+                        return@get call.respond(
+                            HttpStatusCode.Forbidden,
+                            ResponseError(HttpStatusCode.Forbidden.value, "Employees cannot access financial reports")
+                        )
+                    }
+
+                    val washerId = call.parameters[Constants.KEY_WASHER_ID]
+                    val date = call.request.queryParameters[Constants.KEY_DATE]
+
+                    if (washerId.isValidObjectId().not()) {
+                        return@get call.respond(
+                            HttpStatusCode.BadRequest,
+                            ResponseError(HttpStatusCode.BadRequest.value, "Invalid washer ID")
+                        )
+                    }
+
+                    if (date == null) return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        ResponseError(HttpStatusCode.BadRequest.value, "Invalid date")
                     )
+
+                    val shortDate = date.split("-")
+                    val reports = reportsDataSource.getReportsBy(washerId, shortDate[0], shortDate[1])?.map { report ->
+                        val services = report.services.map { serviceId ->
+                            servicesDataSource.getServicesById(serviceId.toString())?.let { service ->
+                                val customer = customersDataSource
+                                    .getCustomerById(service.customerId.toString())
+                                    ?.toCustomerResponse()
+                                    ?: return@get call.respond(
+                                        HttpStatusCode.Conflict,
+                                        ResponseError(
+                                            HttpStatusCode.Conflict.value,
+                                            "Error getting customer id ${service.customerId}"
+                                        )
+                                    )
+                                val vehicle =
+                                    vehiclesDataSource
+                                        .getVehicleById(service.vehicleId.toString())
+                                        ?.toVehicleResponse()
+                                        ?: return@get call.respond(
+                                            HttpStatusCode.Conflict,
+                                            ResponseError(
+                                                HttpStatusCode.Conflict.value,
+                                                "Error getting vehicle id ${service.vehicleId}"
+                                            )
+                                        )
+                                val serviceType =
+                                    serviceTypeDataSource
+                                        .getServiceTypeById(
+                                            washerId = washerId,
+                                            serviceTypeId = service.typeId.toString()
+                                        )
+                                        ?.toServiceTypeResponse()
+                                        ?: return@get call.respond(
+                                            HttpStatusCode.Conflict,
+                                            ResponseError(
+                                                HttpStatusCode.Conflict.value,
+                                                "Error getting service type ${service.typeId}"
+                                            )
+                                        )
+                                service.toServiceResponse(customer, vehicle, serviceType.name)
+                            }
+                        }
+
+                        // TEMPORARY CODE TO CLEAR NULL SERVICES
+                        val nonNullServices = services.filterNotNull()
+                        report.toReportResponse(nonNullServices)
+                    }?.filter { it.totalCustomers >= 1 }
+                    reports?.let {
+                        val sortedReports = it.sortedWith(compareByDescending { it.date })
+                        call.respond(HttpStatusCode.OK, sortedReports)
+                    } ?: run {
+                        call.respond(
+                            HttpStatusCode.Conflict,
+                            ResponseError(HttpStatusCode.Conflict.value, "Error getting report")
+                        )
+                    }
                 }
             }
         }

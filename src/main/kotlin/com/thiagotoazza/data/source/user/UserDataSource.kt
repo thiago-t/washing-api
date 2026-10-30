@@ -11,4 +11,6 @@ interface UserDataSource {
     suspend fun patchUser(userId: String, updates: List<Bson>): User?
     suspend fun patchUser(session: ClientSession, userId: String, updates: List<Bson>): User?
     suspend fun deleteUser(id: String): Boolean
+    suspend fun countUsersByCompanyId(companyId: String): Long
+    suspend fun getUsersByCompanyId(companyId: String): List<User>
 }

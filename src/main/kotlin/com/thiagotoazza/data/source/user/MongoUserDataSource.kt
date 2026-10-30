@@ -8,6 +8,7 @@ import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import com.thiagotoazza.data.models.user.User
 import com.thiagotoazza.utils.Constants
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.toList
 import org.bson.Document
 import org.bson.conversions.Bson
 import org.bson.types.ObjectId
@@ -53,6 +54,16 @@ class MongoUserDataSource(database: MongoDatabase) : UserDataSource {
     override suspend fun deleteUser(id: String): Boolean {
         val query = Document("_id", ObjectId(id))
         return usersCollection.deleteOne(query).wasAcknowledged()
+    }
+
+    override suspend fun getUsersByCompanyId(companyId: String): List<User> {
+        val query = Document(User::companyIds.name, ObjectId(companyId))
+        return usersCollection.find(query).toList()
+    }
+
+    override suspend fun countUsersByCompanyId(companyId: String): Long {
+        val query = Document(User::companyIds.name, ObjectId(companyId))
+        return usersCollection.countDocuments(query)
     }
 
 }
