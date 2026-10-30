@@ -7,6 +7,8 @@ import com.thiagotoazza.data.source.company.CompanyDataSource
 import com.thiagotoazza.data.source.company.MongoCompanyDataSource
 import com.thiagotoazza.data.source.customer.CustomerDataSource
 import com.thiagotoazza.data.source.customer.MongoCustomerDataSource
+import com.thiagotoazza.data.source.expense.ExpenseDataSource
+import com.thiagotoazza.data.source.expense.MongoExpenseDataSource
 import com.thiagotoazza.data.source.report.MongoReportDataSource
 import com.thiagotoazza.data.source.report.ReportDataSource
 import com.thiagotoazza.data.source.service.MongoServiceDataSource
@@ -36,9 +38,9 @@ val appModule = module {
     singleOf(::MongoReportDataSource) bind ReportDataSource::class
     singleOf(::MongoServiceDataSource) bind ServiceDataSource::class
     singleOf(::MongoCustomerDataSource) bind CustomerDataSource::class
-    singleOf(::MongoCustomerDataSource) bind CustomerDataSource::class
     singleOf(::MongoVehicleDataSource) bind VehicleDataSource::class
     singleOf(::MongoServiceTypeDataSource) bind ServiceTypeDataSource::class
+    singleOf(::MongoExpenseDataSource) bind ExpenseDataSource::class
     singleOf(::MongoCompanyDataSource) bind CompanyDataSource::class
 
     single<AuthorizationRoute> { (tokenConfig: TokenConfig) ->
@@ -55,6 +57,7 @@ val appModule = module {
     singleOf(::ServicesRoute)
     singleOf(::ReportsRoute)
     singleOf(::ServiceTypeRoute)
+    singleOf(::ExpensesRoute)
     singleOf(::CompaniesRoute)
 
     singleOf(::CreateServiceOrderUseCase)
